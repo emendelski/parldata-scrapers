@@ -5,6 +5,7 @@ import re
 
 from urlparse import urljoin, parse_qs
 
+from visegrad.spiders import VisegradSpider
 from visegrad.items import Person, Organization, Membership, Motion
 from visegrad.loaders import SkupstinaMePersonLoader, OrganizationLoader, MembershipLoader, \
         SkupstinaMeMotionLoader
@@ -20,7 +21,7 @@ def get_person_id(url):
         return search.group('id')
 
 
-class SkupstinaMeSpider(scrapy.Spider):
+class SkupstinaMeSpider(VisegradSpider):
     name = "skupstina.me"
     allowed_domains = ["www.skupstina.me"]
     start_urls = (

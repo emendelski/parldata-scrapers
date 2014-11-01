@@ -6,6 +6,7 @@ from urlparse import urlparse
 
 import json
 
+from visegrad.spiders import VisegradSpider
 from visegrad.loaders import MojePanstwoPersonLoader, OrganizationLoader, \
     MojePanstwoMembershipLoader, MojePanstwoVoteEventLoader, \
     MojePanstwoVoteLoader, MojePanstwoMotionLoader
@@ -13,7 +14,7 @@ from visegrad.items import Person, Organization, Membership, VoteEvent, Vote, \
     Motion, Count
 
 
-class MojepanstwoPlSpider(scrapy.Spider):
+class MojepanstwoPlSpider(VisegradSpider):
     name = "mojepanstwo.pl"
     allowed_domains = ["api.mojepanstwo.pl"]
     api_url = 'http://api.mojepanstwo.pl/'

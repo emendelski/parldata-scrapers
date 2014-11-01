@@ -12,6 +12,7 @@ import re
 
 import os
 
+from visegrad.spiders import VisegradSpider
 from visegrad.items import Person, Vote, VoteEvent, Organization, Membership,\
     Motion, Count
 from visegrad.loaders import PersonLoader, ParlamentHuVoteLoader, ParlamentHuVoteEventLoader,\
@@ -31,7 +32,7 @@ def get_action_url(url):
         }
 
 
-class ParlamentHu(scrapy.Spider):
+class ParlamentHu(VisegradSpider):
     name = 'parlament.hu'
     allowed_domains = ['parlament.hu']
     PEOPLE_ENDPOINT = 'kepviselok'
