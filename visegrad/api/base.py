@@ -1,3 +1,5 @@
+from scrapy.conf import settings
+
 import vpapi
 
 import json
@@ -60,7 +62,11 @@ class VisegradApiExport(object):
         self.export_votes()
 
     def load_json(self, source):
-        filename = os.path.join(self.domain, self.FILES[source])
+        filename = os.path.join(
+            settings.get('OUTPUT_PATH', ''),
+            self.domain,
+            self.FILES[source]
+        )
         if os.path.exists(filename):
             with open(filename, 'r') as f:
                 return json.loads(f.read())
