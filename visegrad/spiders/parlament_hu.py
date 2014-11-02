@@ -52,8 +52,6 @@ kepviselocsoportjai-es-a-fuggetlen-kepviselok-1990-'
 
     def start_requests(self):
         yield scrapy.Request(self.PARTIES_URL, callback=self.parse_parties)
-        yield scrapy.Request(
-            self.PARTIES_ARCHIVE_URL, callback=self.parse_parties_archive)
         yield scrapy.Request(self.COMMITTEES_URL, callback=self.parse_commitees)
         for req in self.get_votes_requests():
             yield req
@@ -115,6 +113,9 @@ kepviselocsoportjai-es-a-fuggetlen-kepviselok-1990-'
                     TakeFirst()(short_name), TakeFirst()(long_name))
                 if p:
                     yield p
+        links = parties.css('a::attr(href)').extract()
+        for link in map(get_action_url, links):
+            yield scrapy.Request(link, callback=self.parse_people)
 
     def parse_parties_archive(self, response):
         links = response.css(
@@ -159,7 +160,7 @@ kepv_adat?p_azon=%s' % pk
 
             l = ParlamentHuMembershipLoader(item=Membership(), selector=m)
             l.add_value('person_id', person['identifiers'])
-            l.add_xpath('organization_id', './@kepvcsop')
+            l.add_value('organization_id', party['identifiers'])
             l.add_xpath('start_date', './@tol_datum')
             l.add_xpath('end_date', './@ig_datum')
             if m.xpath('name()').extract()[0] == 'tisztseg':
@@ -174,7 +175,7 @@ kepv_adat?p_azon=%s' % pk
             l = ParlamentHuMembershipLoader(item=Membership(), selector=m)
             l.add_value('person_id', person['identifiers'])
             if party:
-                l.add_xpath('organization_id', './@kepvcsop')
+                l.add_value('organization_id', party['identifiers'])
             l.add_xpath('start_date', './@tol_datum')
             l.add_xpath('end_date', './@ig_datum')
             l.add_value('sources', [person_url])
@@ -197,7 +198,13 @@ kepv_adat?p_azon=%s' % pk
 
             m = ParlamentHuMembershipLoader(item=Membership(), selector=committee)
             m.add_value('person_id', person['identifiers'])
-            m.add_value('organization_id', committee_id)
+            m.add_value(
+                'organization_id',
+                {
+                    'identifier': committee_id,
+                    'scheme': 'parlament.hu/parties'
+                }
+            )
             m.add_xpath('role', './/td[3]/text()')
             m.add_xpath('start_date', './/td[4]/text()')
             m.add_xpath('end_date', './/td[5]/text()')
