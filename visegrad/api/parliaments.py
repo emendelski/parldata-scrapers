@@ -34,3 +34,20 @@ class ParlamentHuApiExport(VisegradApiExport):
         }
 
         return self.get_or_create('organizations', chamber)
+
+
+class SejmPlApiExport(VisegradApiExport):
+    parliament = 'pl/sejm'
+    parliament_code = 'PL_SEJM'
+    domain = 'mojepanstwo.pl'
+
+    def make_chamber(self):
+        chamber = {
+            'classification': 'chamber',
+            'identifiers': [
+                {'identifier': '40', 'scheme': 'mojepanstwo.pl/chamber'}
+            ],
+            'name': u'Sejm 2011 - ',
+        }
+
+        return self.get_or_create('organiztions', chamber)
