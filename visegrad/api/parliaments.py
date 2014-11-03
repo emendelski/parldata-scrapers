@@ -50,4 +50,4 @@ class SejmPlApiExport(VisegradApiExport):
             'name': u'Sejm 2011 - ',
         }
 
-        return self.get_or_create('organiztions', chamber)
+        return self.get_or_create('organizations', chamber)
