@@ -34,13 +34,16 @@ class VisegradApiExport(object):
     }
 
     def __init__(self):
-        vpapi.parliament(self.parliament)
+        vpapi.parliament(self.get_parliament())
         vpapi.authorize(self.get_user(), self.get_password())
 
         self._chamber = None
         self._ids = {}
         self.log = logging.getLogger(__name__)
         self.log.setLevel(logging.INFO)
+
+    def get_parliament(self):
+        return os.environ.get('VPAPI_PARLIAMENT_ENDPOINT', self.parliament)
 
     def get_user(self):
         return self.user
