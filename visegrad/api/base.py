@@ -94,16 +94,22 @@ class VisegradApiExport(object):
         else:
             where = {
                 'identifiers': {'$elemMatch': item['identifiers'][0]}}
+        created = False
         resp = vpapi.get(endpoint, where=where, sort=sort)
         if not resp['_items']:
             resp = vpapi.post(endpoint, item)
+            created = True
         else:
             pk = resp['_items'][0]['id']
             resp = vpapi.put("%s/%s" % (endpoint, pk), item)
 
         if resp['_status'] != 'OK':
             raise Exception(resp)
+        resp['_created'] = created
         return resp
+
+    def batch_create(self, endpoint, items):
+        return vpapi.post(endpoint, items)
 
     def get_remote_id(self, scheme, identifier):
         key = "%s/%s" % (scheme, identifier)
@@ -179,14 +185,17 @@ class VisegradApiExport(object):
         for vote_event in vote_events:
             local_identifier = vote_event['identifier']
             del vote_event['identifier']
-            resp = self.get_or_create('vote-events', vote_event)
+            vote_event_resp = self.get_or_create('vote-events', vote_event)
             filtered_votes = filter(
                 lambda x: x['vote_event_id'] == local_identifier, votes)
             for x in filtered_votes:
                 votes.remove(x)
-            for vote in filtered_votes:
-                vote['vote_event_id'] = resp['id']
-                vote['voter_id'] = self.get_remote_id(
-                    scheme=vote['voter_id']['scheme'],
-                    identifier=vote['voter_id']['identifier'])
-                vote_resp = self.get_or_create('votes', vote)
+            # send votes only once, when vote event is created
+            if vote_event_resp['_created']:
+                for vote in filtered_votes:
+                    vote['vote_event_id'] = vote_event_resp['id']
+                    vote['voter_id'] = self.get_remote_id(
+                        scheme=vote['voter_id']['scheme'],
+                        identifier=vote['voter_id']['identifier'])
+                if filtered_votes:
+                    self.batch_create('votes', filtered_votes)
