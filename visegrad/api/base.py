@@ -1,15 +1,12 @@
 from scrapy.conf import settings
+import scrapy.log
+from scrapy.log import INFO
 
 import vpapi
 
 import json
 
-import logging
-
 import os
-
-
-logging.basicConfig()
 
 
 class VisegradApiExport(object):
@@ -33,14 +30,16 @@ class VisegradApiExport(object):
         'votes': VOTES_FILE,
     }
 
-    def __init__(self):
+    def __init__(self, log = None):
         vpapi.parliament(self.get_parliament())
         vpapi.authorize(self.get_user(), self.get_password())
 
         self._chamber = None
         self._ids = {}
-        self.log = logging.getLogger(__name__)
-        self.log.setLevel(logging.INFO)
+        if log is None:
+            self.log = scrapy.log.msg
+        else:
+            self.log = log
 
     def get_parliament(self):
         return os.environ.get('VPAPI_PARLIAMENT_ENDPOINT', self.parliament)
@@ -53,15 +52,15 @@ class VisegradApiExport(object):
         return os.environ.get(var)
 
     def run_export(self):
-        self.log.info('Exporting people')
+        self.log('Exporting people', INFO)
         self.export_people()
-        self.log.info('Exporting organizations')
+        self.log('Exporting organizations', INFO)
         self.export_organizations()
-        self.log.info('Exporting memberships')
+        self.log('Exporting memberships', INFO)
         self.export_memberships()
-        self.log.info('Exporting motions')
+        self.log('Exporting motions', INFO)
         self.export_motions()
-        self.log.info('Exporting votes')
+        self.log('Exporting votes', INFO)
         self.export_votes()
 
     def load_json(self, source):
