@@ -232,7 +232,7 @@ kepv_adat?p_azon=%s' % pk
                 get_votes_url(start, end), callback=self.parse_votes)
 
     def parse_votes(self, response):
-        VOTE_URL = 'http://parlament.hu/internet/cplsql/ogy_szav.szav_lap_egy?\
+        VOTE_URL = 'http://www.parlament.hu/internet/cplsql/ogy_szav.szav_lap_egy?\
 p_szavdatum=%s&p_szavkepv=I&p_szavkpvcsop=I&p_ckl=40'
         for voting in response.xpath('//szavazas'):
             l = ParlamentHuVoteEventLoader(item=VoteEvent(), selector=voting)
@@ -267,6 +267,7 @@ p_szavdatum=%s&p_szavkepv=I&p_szavkpvcsop=I&p_ckl=40'
                     voting.xpath(
                         u'.//tulajdonsag[@nev="Szavazási mód"]/@ertek').extract()
                 )
+                m.add_value('sources', VOTE_URL % voting_id)
                 yield m.load_item()
 
             yield scrapy.Request(
