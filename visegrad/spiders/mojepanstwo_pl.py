@@ -67,7 +67,7 @@ class MojepanstwoPlSpider(VisegradSpider):
         data = json.loads(response.body_as_unicode())
         person = data['object']['data']
         l = MojePanstwoPersonLoader(item=Person(),
-            scheme='mojepanstwo.pl/poslowie')
+            scheme='mojepanstwo.pl/people')
         l.add_value('name', person['nazwa'])
         l.add_value('given_name', person['imiona'])
         l.add_value('family_name', person['nazwisko'])
@@ -217,7 +217,7 @@ class MojepanstwoPlSpider(VisegradSpider):
             v.add_value(
                 'voter_id',
                 {
-                    'scheme': 'mojepanstwo.pl/poslowie',
+                    'scheme': 'mojepanstwo.pl/people',
                     'identifier': person_id
                 }
             )
