@@ -31,7 +31,7 @@ class MojepanstwoPlSpider(VisegradSpider):
             self.get_api_url(
                 '/dane/dataset/sejm_komisje/search.json',
                 limit=self.page_limit),
-            callback=self.parse_commitees,
+            callback=self.parse_committees,
         )
         yield scrapy.Request(
             self.get_api_url(
@@ -106,17 +106,17 @@ class MojepanstwoPlSpider(VisegradSpider):
         m.add_value('organization_id', party['identifiers'][0])
         yield m.load_item()
 
-        commitees_memberships = data['object']['layers']['info']\
+        committees_memberships = data['object']['layers']['info']\
             ['komisje_stanowiska']
 
-        for membership in commitees_memberships:
+        for membership in committees_memberships:
             details = membership['s_poslowie_komisje']
             commitee_id = details['komisja_id']
 
             m = MojePanstwoMembershipLoader(item=Membership())
             m.add_value('person_id', person_item['identifiers'][0])
             m.add_value('organization_id', {
-                'scheme': 'mojepanstwo.pl/commitees',
+                'scheme': 'mojepanstwo.pl/committees',
                 'identifier': commitee_id
             })
             m.add_value('start_date', details['od'])
@@ -127,14 +127,14 @@ class MojepanstwoPlSpider(VisegradSpider):
                 callback=self.parse_commitee,
             )
 
-    def parse_commitees(self, response):
+    def parse_committees(self, response):
         data = json.loads(response.body_as_unicode())
-        commitees = data['search']['dataobjects']
+        committees = data['search']['dataobjects']
 
-        for obj in commitees:
+        for obj in committees:
             commitee = obj['data']
             l = OrganizationLoader(item=Organization(classification='commitee'),
-                scheme='mojepanstwo.pl/commitees')
+                scheme='mojepanstwo.pl/committees')
             l.add_value('identifiers', commitee['id'])
             l.add_value('name', commitee['nazwa'])
             l.add_value('sources', obj['_mpurl'])
