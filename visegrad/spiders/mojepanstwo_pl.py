@@ -73,10 +73,11 @@ class MojepanstwoPlSpider(VisegradSpider):
         l.add_value('family_name', person['nazwisko'])
         l.add_value('identifiers', person['id'])
         l.add_value('birth_date', person['data_urodzenia'])
-        l.add_value(
-            'image',
-            'http://resources.sejmometr.pl/mowcy/a/0/%s.jpg' % person['ludzie.id']
-        )
+        if person['ludzie.id']:
+            l.add_value(
+                'image',
+                'http://resources.sejmometr.pl/mowcy/a/0/%s.jpg' % person['ludzie.id']
+            )
         # l.add_value('sources', data['object']['_mpurl'])
         l.add_value(
             'sources',
