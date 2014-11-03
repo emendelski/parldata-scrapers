@@ -158,7 +158,14 @@ class SkupstinaMeMotionLoader(MotionLoader):
 
 
 class MojePanstwoMotionLoader(MotionLoader):
-    date_in = MapCompose(pl_to_iso)
+    VOTING_RESULTS = {
+        '1': 'pass',
+        '2': 'fail',
+    }
+
+    date_in = MapCompose(pl_to_iso_datetime)
+    result_in = MapCompose(lambda x: translate(
+        x, MojePanstwoMotionLoader.VOTING_RESULTS))
 
 
 class CountLoader(ItemLoader):
