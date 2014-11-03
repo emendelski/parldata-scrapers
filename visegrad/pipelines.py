@@ -64,6 +64,10 @@ class ExportPipeline(object):
                 self.exporters[filename].finish_exporting()
             self.files[filename].close()
 
+        if reason == 'finished' and spider.exporter_class:
+            exporter = spider.exporter_class()
+            exporter.run_export()
+
     def process_item(self, item, spider):
         self.get_exporter(spider, item).export_item(item)
 

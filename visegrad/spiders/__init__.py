@@ -10,12 +10,6 @@ class VisegradSpider(scrapy.Spider):
         super(VisegradSpider, self).__init__(*args, **kwargs)
 
         dispatcher.connect(self.spider_opened, signals.spider_opened)
-        dispatcher.connect(self.spider_closed, signals.spider_closed)
 
     def spider_opened(self, spider):
         pass
-
-    def spider_closed(self, spider, reason):
-        if reason == 'finished' and self.exporter_class:
-            exporter = self.exporter_class()
-            exporter.run_export()
