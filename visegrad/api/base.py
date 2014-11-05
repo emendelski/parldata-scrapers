@@ -1,6 +1,6 @@
 from scrapy.conf import settings
 import scrapy.log
-from scrapy.log import INFO
+from scrapy.log import INFO, DEBUG
 
 import vpapi
 
@@ -104,9 +104,11 @@ class VisegradApiExport(object):
         if not resp['_items']:
             resp = vpapi.post(endpoint, item)
             created = True
+            self.log('Created %s' % resp['_links']['self']['href'], DEBUG)
         else:
             pk = resp['_items'][0]['id']
             resp = vpapi.put("%s/%s" % (endpoint, pk), item)
+            self.log('Updated %s' % resp['_links']['self']['href'], DEBUG)
 
         if resp['_status'] != 'OK':
             raise Exception(resp)
@@ -114,7 +116,11 @@ class VisegradApiExport(object):
         return resp
 
     def batch_create(self, endpoint, items):
-        return vpapi.post(endpoint, items)
+        resp = vpapi.post(endpoint, items)
+        if resp['_status'] != 'OK':
+            raise Exception(resp)
+        self.log('Created %d items' % len(resp['_items']), DEBUG)
+        return
 
     def get_remote_id(self, scheme, identifier):
         key = "%s/%s" % (scheme, identifier)

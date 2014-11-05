@@ -3,6 +3,7 @@ from scrapy.conf import settings
 from scrapy import signals
 from scrapy.xlib.pydispatch import dispatcher
 from scrapy.contrib.exporter import JsonItemExporter
+from scrapy.log import ERROR
 
 import os
 
@@ -66,7 +67,10 @@ class ExportPipeline(object):
 
         if reason == 'finished' and spider.exporter_class:
             exporter = spider.exporter_class(log=spider.log)
-            exporter.run_export()
+            try:
+                exporter.run_export()
+            except Exception, e:
+                spider.log(e.message, ERROR)
 
     def process_item(self, item, spider):
         self.get_exporter(spider, item).export_item(item)
