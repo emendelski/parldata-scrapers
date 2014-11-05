@@ -71,8 +71,9 @@ class VisegradApiExport(object):
         )
         if os.path.exists(filename):
             with open(filename, 'r') as f:
-                return json.loads(f.read())
-        return []
+                for i in f:
+                    line = i.lstrip('[').rstrip().rstrip(']').rstrip(',')
+                    yield json.loads(line)
 
     def get_or_create(self, endpoint, item):
         sort = []
@@ -182,16 +183,15 @@ class VisegradApiExport(object):
 
     def export_votes(self):
         vote_events = self.load_json('vote-events')
-        votes = self.load_json('votes')
 
         for vote_event in vote_events:
             local_identifier = vote_event['identifier']
             del vote_event['identifier']
             vote_event_resp = self.get_or_create('vote-events', vote_event)
             filtered_votes = filter(
-                lambda x: x['vote_event_id'] == local_identifier, votes)
-            for x in filtered_votes:
-                votes.remove(x)
+                lambda x: x['vote_event_id'] == local_identifier,
+                self.load_json('votes')
+            )
             # send votes only once, when vote event is created
             if vote_event_resp['_created']:
                 for vote in filtered_votes:
