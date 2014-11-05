@@ -8,6 +8,8 @@ import json
 
 import os
 
+import itertools
+
 
 class VisegradApiExport(object):
     parliament = ''
@@ -183,21 +185,26 @@ class VisegradApiExport(object):
 
     def export_votes(self):
         vote_events = self.load_json('vote-events')
+        votes = self.load_json('votes')
+        vote_events_ids = {}
 
         for vote_event in vote_events:
             local_identifier = vote_event['identifier']
             del vote_event['identifier']
             vote_event_resp = self.get_or_create('vote-events', vote_event)
-            filtered_votes = filter(
-                lambda x: x['vote_event_id'] == local_identifier,
-                self.load_json('votes')
-            )
             # send votes only once, when vote event is created
             if vote_event_resp['_created']:
-                for vote in filtered_votes:
-                    vote['vote_event_id'] = vote_event_resp['id']
-                    vote['voter_id'] = self.get_remote_id(
-                        scheme=vote['voter_id']['scheme'],
-                        identifier=vote['voter_id']['identifier'])
-                if filtered_votes:
-                    self.batch_create('votes', filtered_votes)
+                vote_events_ids[local_identifier] = vote_event_resp['id']
+
+        size = 400
+        chunk = itertools.islice(votes, size)
+        while chunk:
+            votes_chunk = [i for i in chunk if i['vote_event_id'] in vote_events_ids]
+            for v in votes_chunk:
+                v['vote_event_id'] = vote_events_ids[v['vote_event_id']]
+                v['voter_id'] = self.get_remote_id(
+                        scheme=v['voter_id']['scheme'],
+                        identifier=v['voter_id']['identifier'])
+            if votes_chunk:
+                self.batch_create('votes', votes_chunk)
+            chunk = itertools.islice(votes, size)
