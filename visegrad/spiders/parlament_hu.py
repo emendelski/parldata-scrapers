@@ -48,7 +48,7 @@ kepviselocsoportjai-es-a-fuggetlen-kepviselok-1990-'
         r'/internet/cplsql/ogy_kpv\.kepv_adat\?p_azon=(?P<p_azon>\w\d+)':
         PERSON_ENDPOINT,
     }
-    VOTES_START_DATE = date(2014, 6, 1)
+    VOTES_START_DATE = date(2014, 4, 26)
 
     def start_requests(self):
         yield scrapy.Request(self.PARTIES_URL, callback=self.parse_parties)
