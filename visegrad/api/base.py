@@ -74,9 +74,8 @@ class VisegradApiExport(object):
         )
         if os.path.exists(filename):
             with open(filename, 'r') as f:
-                for i in f:
-                    line = i.lstrip('[').rstrip().rstrip(']').rstrip(',')
-                    yield json.loads(line)
+                for line in f:
+                    yield json.loads(line.rstrip())
 
     def get_or_create(self, endpoint, item):
         sort = []

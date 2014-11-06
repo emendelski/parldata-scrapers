@@ -2,7 +2,7 @@ from scrapy.exceptions import DropItem
 from scrapy.conf import settings
 from scrapy import signals
 from scrapy.xlib.pydispatch import dispatcher
-from scrapy.contrib.exporter import JsonItemExporter
+from scrapy.contrib.exporter import JsonLinesItemExporter
 from scrapy.log import ERROR
 
 import os
@@ -55,7 +55,7 @@ class ExportPipeline(object):
         filename = self.get_filename(spider, item)
         if filename not in self.exporters:
             f = self.get_file(spider, item)
-            self.exporters[filename] = JsonItemExporter(f)
+            self.exporters[filename] = JsonLinesItemExporter(f)
             self.exporters[filename].start_exporting()
         return self.exporters[filename]
 
