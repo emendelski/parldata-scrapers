@@ -6,6 +6,8 @@ from urlparse import urlparse
 
 import json
 
+import uuid
+
 from visegrad.spiders import VisegradSpider
 from visegrad.loaders import MojePanstwoPersonLoader, OrganizationLoader, \
     MojePanstwoMembershipLoader, MojePanstwoVoteEventLoader, \
@@ -122,10 +124,6 @@ class MojepanstwoPlSpider(VisegradSpider):
             m.add_value('start_date', details['od'])
             m.add_value('end_date', details['do'])
             yield m.load_item()
-            yield scrapy.Request(
-                self.get_api_url('/dane/sejm_komisje/%s' % commitee_id),
-                callback=self.parse_commitee,
-            )
 
     def parse_committees(self, response):
         data = json.loads(response.body_as_unicode())
@@ -178,7 +176,11 @@ class MojepanstwoPlSpider(VisegradSpider):
     def parse_vote_event(self, response):
         data = json.loads(response.body_as_unicode())
         vote_event = data['object']['data']
-        m = MojePanstwoMotionLoader(item=Motion())
+
+        # link motion and vote event
+        motion_id = str(uuid.uuid4())
+
+        m = MojePanstwoMotionLoader(item=Motion(id=motion_id))
         m.add_value('text', vote_event['tytul'])
         m.add_value('date', vote_event['czas'])
         m.add_value('result', vote_event['wynik_id'])
@@ -191,7 +193,7 @@ class MojepanstwoPlSpider(VisegradSpider):
         )
         motion_item = m.load_item()
         yield motion_item
-        ve = MojePanstwoVoteEventLoader(item=VoteEvent())
+        ve = MojePanstwoVoteEventLoader(item=VoteEvent(motion_id=motion_id))
         ve.add_value('identifier', vote_event['id'])
         ve.add_value('start_date', vote_event['czas'])
         ve.add_value('result', vote_event['wynik_id'])
@@ -211,16 +213,13 @@ class MojepanstwoPlSpider(VisegradSpider):
         yield vote_event_item
         votes = data['object']['layers']['wynikiIndywidualne']
         for vote in votes:
-            v = MojePanstwoVoteLoader(item=Vote())
+            v = MojePanstwoVoteLoader(
+                item=Vote(),
+                scheme='mojepanstwo.pl/people'
+            )
             person_id = vote['poslowie']['id']
             v.add_value('vote_event_id', vote_event_item['identifier'])
-            v.add_value(
-                'voter_id',
-                {
-                    'scheme': 'mojepanstwo.pl/people',
-                    'identifier': person_id
-                }
-            )
+            v.add_value('voter_id', person_id)
             v.add_value('option', vote['glosy']['glos_id'])
             yield v.load_item()
             yield scrapy.Request(

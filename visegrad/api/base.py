@@ -16,6 +16,7 @@ class VisegradApiExport(object):
     domain = ''
     user = 'scraper'
     parliament_code = ''
+    motions_ids = {}
 
     PEOPLE_FILE = 'Person.json'
     ORGANIZATIONS_FILE = 'Organization.json'
@@ -90,7 +91,10 @@ class VisegradApiExport(object):
         elif endpoint == 'motions':
             where = {'sources.url': item['sources'][0]['url']}
         elif endpoint == 'vote-events':
-            where = {'start_date': item['start_date']}
+            if 'motion_id' in item:
+                where = {'motion_id': item['motion_id']}
+            else:
+                where = {'start_date': item['start_date']}
         elif endpoint == 'votes':
             where = {
                 'vote_event_id': item['vote_event_id'],
@@ -184,10 +188,17 @@ class VisegradApiExport(object):
     def export_motions(self):
         chamber = self.get_chamber()
         motions = self.load_json('motions')
+        motion_id = None
 
         for item in motions:
             item['organization_id'] = chamber['id']
+            if 'id' in item:
+                motion_id = item['id']
+                del item['id']
             resp = self.get_or_create('motions', item)
+
+            if motion_id:
+                self.motions_ids[motion_id] = resp['id']
 
     def export_votes(self):
         vote_events = self.load_json('vote-events')
@@ -197,6 +208,10 @@ class VisegradApiExport(object):
         for vote_event in vote_events:
             local_identifier = vote_event['identifier']
             del vote_event['identifier']
+
+            if 'motion_id' in vote_event:
+                vote_event['motion_id'] = self.motions_ids[vote_event['motion_id']]
+
             vote_event_resp = self.get_or_create('vote-events', vote_event)
             # send votes only once, when vote event is created
             if vote_event_resp['_created']:

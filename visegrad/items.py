@@ -109,6 +109,7 @@ class Membership(Item):
 
 
 class Motion(Item):
+    id = scrapy.Field()
     organization_id = scrapy.Field()
     legislative_session = scrapy.Field()
     legislative_session_id = scrapy.Field()
