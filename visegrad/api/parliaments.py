@@ -45,7 +45,7 @@ class SejmPlApiExport(VisegradApiExport):
         chamber = {
             'classification': 'chamber',
             'identifiers': [
-                {'identifier': '40', 'scheme': 'mojepanstwo.pl/chamber'}
+                {'identifier': '7', 'scheme': 'mojepanstwo.pl/chamber'}
             ],
             'name': u'Sejm 2011 - ',
         }
