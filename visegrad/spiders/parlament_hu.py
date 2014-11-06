@@ -282,7 +282,8 @@ p_szavdatum=%s&p_szavkepv=I&p_szavkpvcsop=I&p_ckl=40'
                 urljoin(response.url, m), callback=self.parse_motion)
 
         votes = filter(
-            lambda x: not x.css('th'), response.css('#szav-nev-szerint tr'))
+            lambda x: x.css('a') and not x.css('th'),
+            response.css('#szav-nev-szerint tr'))
         for tr in votes:
             l = ParlamentHuVoteLoader(item=Vote(), selector=tr,
                 scheme='parlament.hu/people')
