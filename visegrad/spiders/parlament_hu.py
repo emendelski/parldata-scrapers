@@ -35,6 +35,8 @@ def get_action_url(url):
 class ParlamentHu(VisegradSpider):
     name = 'parlament.hu'
     allowed_domains = ['parlament.hu']
+    parliament_code = 'HU_ORSZAGGYULES'
+
     PEOPLE_ENDPOINT = 'kepviselok'
     PERSON_ENDPOINT = 'kepviselo'
     VOTES_ENDPOINT = 'szavazasok'

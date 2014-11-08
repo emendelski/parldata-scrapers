@@ -9,6 +9,7 @@ from visegrad.spiders import VisegradSpider
 from visegrad.items import Person, Organization, Membership, Motion
 from visegrad.loaders import SkupstinaMePersonLoader, OrganizationLoader, MembershipLoader, \
         SkupstinaMeMotionLoader
+from visegrad.api.parliaments import SkustinaMeApiExport
 
 
 def get_person_id(url):
@@ -27,6 +28,8 @@ class SkupstinaMeSpider(VisegradSpider):
     start_urls = (
         'http://www.skupstina.me/',
     )
+    parliament_code = 'ME_SKUPSTINA'
+
     MP_LIST_URL = 'http://www.skupstina.me/index.php/me/skupstina\
 /poslanice-i-poslanici/lista-poslanika-i-poslanica'
     COMMITEES_LIST_URL = 'http://www.skupstina.me/index.php/me/\

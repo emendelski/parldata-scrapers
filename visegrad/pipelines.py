@@ -65,12 +65,15 @@ class ExportPipeline(object):
                 self.exporters[filename].finish_exporting()
             self.files[filename].close()
 
+        status = 'finished' if reason == 'finished' else 'failed'
         if reason == 'finished' and spider.exporter_class:
             exporter = spider.exporter_class(log=spider.log)
             try:
                 exporter.run_export()
             except Exception, e:
                 spider.log(e.message, ERROR)
+                status = 'failed'
+        spider.log_finish(status)
 
     def process_item(self, item, spider):
         self.get_exporter(spider, item).export_item(item)

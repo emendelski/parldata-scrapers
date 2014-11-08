@@ -21,6 +21,7 @@ class MojepanstwoPlSpider(VisegradSpider):
     allowed_domains = ["api.mojepanstwo.pl"]
     api_url = 'http://api.mojepanstwo.pl/'
     page_limit = 100
+    parliament_code = 'PL_SEJM'
 
     def start_requests(self):
         yield scrapy.Request(
