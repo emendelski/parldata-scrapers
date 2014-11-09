@@ -225,7 +225,7 @@ class MojepanstwoPlSpider(VisegradSpider):
             yield v.load_item()
             yield scrapy.Request(
                 self.get_api_url(
-                    '/data/poslowie/%s' % person_id,
+                    '/dane/poslowie/%s' % person_id,
                     layers='info'),
                 callback=self.parse_person
             )
