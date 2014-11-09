@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import scrapy
+from scrapy.exceptions import DropItem
 
 from urllib import urlencode
 from urlparse import urlparse
@@ -68,6 +69,18 @@ class MojepanstwoPlSpider(VisegradSpider):
 
     def parse_person(self, response):
         data = json.loads(response.body_as_unicode())
+        if data['object'] is False:
+            name = response.meta.get('name')
+            if name:
+                l = MojePanstwoPersonLoader(item=Person(),
+                    scheme='mojepanstwo.pl/people')
+                l.add_value('name', name)
+                l.add_value('identifiers', response.meta.get('id'))
+                yield l.load_item()
+                raise StopIteration()
+            else:
+                raise DropItem()
+
         person = data['object']['data']
         l = MojePanstwoPersonLoader(item=Person(),
             scheme='mojepanstwo.pl/people')
@@ -183,8 +196,9 @@ class MojepanstwoPlSpider(VisegradSpider):
 
         m = MojePanstwoMotionLoader(item=Motion(id=motion_id))
         m.add_value('text', vote_event['tytul'])
-        m.add_value('date', vote_event['czas'])
-        m.add_value('result', vote_event['wynik_id'])
+        m.add_value('date', vote_event.get('czas'))
+        if vote_event['wynik_id'] in ('1', '2'):
+            m.add_value('result', vote_event['wynik_id'])
         m.add_value('legislative_session_id',
             vote_event['sejm_posiedzenia.tytul'])
         # m.add_value('sources', data['object']['_mpurl'])
@@ -196,8 +210,9 @@ class MojepanstwoPlSpider(VisegradSpider):
         yield motion_item
         ve = MojePanstwoVoteEventLoader(item=VoteEvent(motion_id=motion_id))
         ve.add_value('identifier', vote_event['id'])
-        ve.add_value('start_date', vote_event['czas'])
-        ve.add_value('result', vote_event['wynik_id'])
+        ve.add_value('start_date', vote_event.get('czas'))
+        if vote_event['wynik_id'] in ('1', '2'):
+            m.add_value('result', vote_event['wynik_id'])
         ve.add_value('legislative_session_id',
             vote_event['sejm_posiedzenia.tytul'])
         counts = dict((
@@ -227,7 +242,11 @@ class MojepanstwoPlSpider(VisegradSpider):
                 self.get_api_url(
                     '/dane/poslowie/%s' % person_id,
                     layers='info'),
-                callback=self.parse_person
+                callback=self.parse_person,
+                meta={
+                    'name': vote['poslowie'].get('nazwa'),
+                    'id': person_id
+                }
             )
 
     def get_api_url(self, path, **params):
