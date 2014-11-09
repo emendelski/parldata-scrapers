@@ -79,6 +79,7 @@ class VisegradApiExport(object):
 
     def get_or_create(self, endpoint, item):
         sort = []
+        embed = []
         if endpoint == 'memberships':
             where = {
                 'person_id': item['person_id'],
@@ -90,6 +91,7 @@ class VisegradApiExport(object):
         elif endpoint == 'motions':
             where = {'sources.url': item['sources'][0]['url']}
         elif endpoint == 'vote-events':
+            embed = ['votes']
             if 'motion_id' in item:
                 where = {'motion_id': item['motion_id']}
             else:
@@ -103,7 +105,7 @@ class VisegradApiExport(object):
             where = {
                 'identifiers': {'$elemMatch': item['identifiers'][0]}}
         created = False
-        resp = vpapi.get(endpoint, where=where, sort=sort)
+        resp = vpapi.get(endpoint, where=where, sort=sort, embed=embed)
         if not resp['_items']:
             resp = vpapi.post(endpoint, item)
             created = True
@@ -213,7 +215,7 @@ class VisegradApiExport(object):
 
             vote_event_resp = self.get_or_create('vote-events', vote_event)
             # send votes only once, when vote event is created
-            if vote_event_resp['_created']:
+            if not vote_event_resp.get('votes', []):
                 vote_events_ids[local_identifier] = vote_event_resp['id']
 
         size = 400
