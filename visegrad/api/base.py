@@ -10,6 +10,8 @@ import os
 
 import itertools
 
+from visegrad.utils import chunks
+
 
 class VisegradApiExport(object):
     parliament = ''
@@ -77,7 +79,7 @@ class VisegradApiExport(object):
                 for line in f:
                     yield json.loads(line.rstrip())
 
-    def get_or_create(self, endpoint, item):
+    def get_or_create(self, endpoint, item, refresh=False):
         sort = []
         embed = []
         if endpoint == 'memberships':
@@ -105,7 +107,7 @@ class VisegradApiExport(object):
             where = {
                 'identifiers': {'$elemMatch': item['identifiers'][0]}}
         created = False
-        resp = vpapi.get(endpoint, where=where, sort=sort, embed=embed)
+        resp = vpapi.get(endpoint, where=where, sort=sort)
         if not resp['_items']:
             resp = vpapi.post(endpoint, item)
             created = True
@@ -117,6 +119,9 @@ class VisegradApiExport(object):
 
         if resp['_status'] != 'OK':
             raise Exception(resp)
+        if refresh:
+            resp = vpapi.get(
+                resp['_links']['self']['href'], sort=sort, embed=embed)
         resp['_created'] = created
         return resp
 
@@ -213,20 +218,17 @@ class VisegradApiExport(object):
             if 'motion_id' in vote_event:
                 vote_event['motion_id'] = self.motions_ids[vote_event['motion_id']]
 
-            vote_event_resp = self.get_or_create('vote-events', vote_event)
+            vote_event_resp = self.get_or_create(
+                'vote-events', vote_event, refresh=True)
             # send votes only once, when vote event is created
-            if not vote_event_resp.get('votes', []):
+            if not vote_event_resp.get('votes'):
                 vote_events_ids[local_identifier] = vote_event_resp['id']
 
-        size = 400
-        chunk = itertools.islice(votes, size)
-        while chunk:
-            votes_chunk = [i for i in chunk if i['vote_event_id'] in vote_events_ids]
+        filter_func = lambda x: x['vote_event_id'] in vote_events_ids
+        for votes_chunk in chunks(votes, 400, filter_func):
             for v in votes_chunk:
                 v['vote_event_id'] = vote_events_ids[v['vote_event_id']]
                 v['voter_id'] = self.get_remote_id(
                         scheme=v['voter_id']['scheme'],
                         identifier=v['voter_id']['identifier'])
-            if votes_chunk:
-                self.batch_create('votes', votes_chunk)
-            chunk = itertools.islice(votes, size)
+            self.batch_create('votes', votes_chunk)
