@@ -18,6 +18,7 @@ from visegrad.items import Person, Vote, VoteEvent, Organization, Membership,\
 from visegrad.loaders import PersonLoader, ParlamentHuVoteLoader, ParlamentHuVoteEventLoader,\
     ParlamentHuOrganizationLoader, ParlamentHuMembershipLoader, ParlamentHuMotionLoader, \
     CountLoader
+from visegrad.api.parliaments import ParlamentHuApiExport
 
 
 def get_action_url(url):
@@ -36,6 +37,7 @@ class ParlamentHu(VisegradSpider):
     name = 'parlament.hu'
     allowed_domains = ['parlament.hu']
     parliament_code = 'HU_ORSZAGGYULES'
+    exporter_class = ParlamentHuApiExport
 
     PEOPLE_ENDPOINT = 'kepviselok'
     PERSON_ENDPOINT = 'kepviselo'

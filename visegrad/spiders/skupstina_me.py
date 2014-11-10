@@ -29,6 +29,7 @@ class SkupstinaMeSpider(VisegradSpider):
         'http://www.skupstina.me/',
     )
     parliament_code = 'ME_SKUPSTINA'
+    exporter_class = SkustinaMeApiExport
 
     MP_LIST_URL = 'http://www.skupstina.me/index.php/me/skupstina\
 /poslanice-i-poslanici/lista-poslanika-i-poslanica'

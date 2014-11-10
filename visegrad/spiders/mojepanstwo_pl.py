@@ -15,6 +15,7 @@ from visegrad.loaders import MojePanstwoPersonLoader, OrganizationLoader, \
     MojePanstwoVoteLoader, MojePanstwoMotionLoader
 from visegrad.items import Person, Organization, Membership, VoteEvent, Vote, \
     Motion, Count
+from visegrad.api.parliaments import SejmPlApiExport
 
 
 class MojepanstwoPlSpider(VisegradSpider):
@@ -23,6 +24,7 @@ class MojepanstwoPlSpider(VisegradSpider):
     api_url = 'http://api.mojepanstwo.pl/'
     page_limit = 100
     parliament_code = 'PL_SEJM'
+    exporter_class = SejmPlApiExport
 
     def start_requests(self):
         yield scrapy.Request(
