@@ -110,8 +110,21 @@ class MojePanstwoMembershipLoader(MembershipLoader):
 
 
 class ParlamentHuMembershipLoader(MembershipLoader):
+    ROLES = {
+        u'frakciótitkár': u'secretary of the parliamentary group',
+        u'Elnök': u'president',
+        u'frakcióvez. h.': u'deputy leader of parliamentary group',
+        u'Titkár': u'secretary',
+        u'frakcióvezető': u'leader of parliamentary group',
+        u'Alelnök': u'vice president',
+        u'Társelnök': u'co-president',
+        u'Tag': u'member',
+        u'Helyettesítő alelnök': u'substituting vice president'
+    }
     start_date_in = MapCompose(hu_to_iso)
     end_date_in = MapCompose(hu_to_iso)
+    role_in = MapCompose(lambda x: translate(
+        x, ParlamentHuMembershipLoader.ROLES))
 
 
 class MotionLoader(ItemLoader):
