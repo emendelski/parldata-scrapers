@@ -89,7 +89,11 @@ kepviselocsoportjai-es-a-fuggetlen-kepviselok-1990-'
             yield scrapy.Request(link, self.parse_commitee)
 
     def parse_commitee(self, response):
-        committee_id = urlparse(response.url).query
+        query = parse_qs(urlparse(response.url).query)
+        committee_id = 'p_biz=%(p_biz)s&p_ckl=%(p_ckl)s' % dict(
+            (k.lower(), ''.join(v).upper())
+            for k, v in query.iteritems()
+        )
 
         content = response.css('.pair-content')
 
@@ -196,7 +200,11 @@ kepv_adat?p_azon=%s' % pk
             url = urljoin(response.url, url)
             yield scrapy.Request(url, callback=self.parse_commitee)
 
-            committee_id = urlparse(url).query
+            query = parse_qs(urlparse(url).query)
+            committee_id = 'p_biz=%(p_biz)s&p_ckl=%(p_ckl)s' % dict(
+                (k.lower(), ''.join(v).upper())
+                for k, v in query.iteritems()
+            )
 
             m = ParlamentHuMembershipLoader(item=Membership(), selector=committee)
             m.add_value('person_id', person['identifiers'])
@@ -204,7 +212,7 @@ kepv_adat?p_azon=%s' % pk
                 'organization_id',
                 {
                     'identifier': committee_id,
-                    'scheme': 'parlament.hu/parties'
+                    'scheme': 'parlament.hu/committees'
                 }
             )
             m.add_xpath('role', './/td[3]/text()')

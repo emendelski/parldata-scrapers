@@ -8,8 +8,6 @@ import json
 
 import os
 
-import itertools
-
 from visegrad.utils import chunks
 
 
@@ -187,9 +185,10 @@ class VisegradApiExport(object):
             organization_id = self.get_remote_id(
                 scheme=item['organization_id']['scheme'],
                 identifier=item['organization_id']['identifier'])
-            item['person_id'] = person_id
-            item['organization_id'] = organization_id
-            self.get_or_create('memberships', item)
+            if person_id and organization_id:
+                item['person_id'] = person_id
+                item['organization_id'] = organization_id
+                self.get_or_create('memberships', item)
 
     def export_motions(self):
         chamber = self.get_chamber()
