@@ -129,13 +129,13 @@ class MojepanstwoPlSpider(VisegradSpider):
 
         for membership in committees_memberships:
             details = membership['s_poslowie_komisje']
-            commitee_id = details['komisja_id']
+            committee_id = details['komisja_id']
 
             m = MojePanstwoMembershipLoader(item=Membership())
             m.add_value('person_id', person_item['identifiers'][0])
             m.add_value('organization_id', {
                 'scheme': 'mojepanstwo.pl/committees',
-                'identifier': commitee_id
+                'identifier': committee_id
             })
             m.add_value('start_date', details['od'])
             m.add_value('end_date', details['do'])
@@ -146,11 +146,11 @@ class MojepanstwoPlSpider(VisegradSpider):
         committees = data['search']['dataobjects']
 
         for obj in committees:
-            commitee = obj['data']
-            l = OrganizationLoader(item=Organization(classification='commitee'),
+            committee = obj['data']
+            l = OrganizationLoader(item=Organization(classification='committee'),
                 scheme='mojepanstwo.pl/committees')
-            l.add_value('identifiers', commitee['sejm_komisje.id'])
-            l.add_value('name', commitee['sejm_komisje.nazwa'])
+            l.add_value('identifiers', committee['sejm_komisje.id'])
+            l.add_value('name', committee['sejm_komisje.nazwa'])
             l.add_value('sources', obj['_mpurl'])
             yield l.load_item()
 
