@@ -86,11 +86,11 @@ class MojepanstwoPlSpider(VisegradSpider):
         person = data['object']['data']
         l = MojePanstwoPersonLoader(item=Person(),
             scheme='mojepanstwo.pl/people')
-        l.add_value('name', person['nazwa'])
-        l.add_value('given_name', person['imiona'])
-        l.add_value('family_name', person['nazwisko'])
-        l.add_value('identifiers', person['id'])
-        l.add_value('birth_date', person['data_urodzenia'])
+        l.add_value('name', person['poslowie.nazwa'])
+        l.add_value('given_name', person['poslowie.imiona'])
+        l.add_value('family_name', person['poslowie.nazwisko'])
+        l.add_value('identifiers', person['poslowie.id'])
+        l.add_value('birth_date', person['poslowie.data_urodzenia'])
         if person['ludzie.id']:
             l.add_value(
                 'image',
@@ -99,9 +99,9 @@ class MojepanstwoPlSpider(VisegradSpider):
         # l.add_value('sources', data['object']['_mpurl'])
         l.add_value(
             'sources',
-            'http://mojepanstwo.pl/dane/poslowie/%s' % data['object']['object_id']
+            'http://mojepanstwo.pl/dane/poslowie/%s' % data['object']['id']
         )
-        gender = person.get('plec')
+        gender = person.get('poslowie.plec')
         gender = {
             'M': 'male',
             'K': 'female'
@@ -149,8 +149,8 @@ class MojepanstwoPlSpider(VisegradSpider):
             commitee = obj['data']
             l = OrganizationLoader(item=Organization(classification='commitee'),
                 scheme='mojepanstwo.pl/committees')
-            l.add_value('identifiers', commitee['id'])
-            l.add_value('name', commitee['nazwa'])
+            l.add_value('identifiers', commitee['sejm_komisje.id'])
+            l.add_value('name', commitee['sejm_komisje.nazwa'])
             l.add_value('sources', obj['_mpurl'])
             yield l.load_item()
 
@@ -197,31 +197,31 @@ class MojepanstwoPlSpider(VisegradSpider):
         motion_id = str(uuid.uuid4())
 
         m = MojePanstwoMotionLoader(item=Motion(id=motion_id))
-        m.add_value('text', vote_event['tytul'])
-        m.add_value('date', vote_event.get('czas'))
-        if vote_event['wynik_id'] in ('1', '2'):
-            m.add_value('result', vote_event['wynik_id'])
+        m.add_value('text', vote_event['sejm_glosowania.tytul'])
+        m.add_value('date', vote_event.get('sejm_glosowania.czas'))
+        if vote_event['sejm_glosowania.wynik_id'] in ('1', '2'):
+            m.add_value('result', vote_event['sejm_glosowania.wynik_id'])
         m.add_value('legislative_session_id',
             vote_event['sejm_posiedzenia.tytul'])
         # m.add_value('sources', data['object']['_mpurl'])
         m.add_value(
             'sources',
-            'http://mojepanstwo.pl/dane/sejm_glosowania/%s' % data['object']['object_id']
+            'http://mojepanstwo.pl/dane/sejm_glosowania/%s' % data['object']['id']
         )
         motion_item = m.load_item()
         yield motion_item
         ve = MojePanstwoVoteEventLoader(item=VoteEvent(motion_id=motion_id))
-        ve.add_value('identifier', vote_event['id'])
-        ve.add_value('start_date', vote_event.get('czas'))
-        if vote_event['wynik_id'] in ('1', '2'):
-            m.add_value('result', vote_event['wynik_id'])
+        ve.add_value('identifier', vote_event['sejm_glosowania.id'])
+        ve.add_value('start_date', vote_event.get('sejm_glosowania.czas'))
+        if vote_event['sejm_glosowania.wynik_id'] in ('1', '2'):
+            m.add_value('result', vote_event['sejm_glosowania.wynik_id'])
         ve.add_value('legislative_session_id',
             vote_event['sejm_posiedzenia.tytul'])
         counts = dict((
-            ('yes', vote_event['z']),
-            ('no', vote_event['p']),
-            ('abstain', vote_event['w']),
-            ('absent', vote_event['n']),
+            ('yes', vote_event['sejm_glosowania.z']),
+            ('no', vote_event['sejm_glosowania.p']),
+            ('abstain', vote_event['sejm_glosowania.w']),
+            ('absent', vote_event['sejm_glosowania.n']),
         ))
         counts = [
             Count(option=option, value=value) for option, value in counts.items()
