@@ -4,6 +4,8 @@ from scrapy.contrib.loader.processor import TakeFirst, MapCompose
 
 from datetime import datetime
 
+import pytz
+
 from visegrad.utils import MakeList
 
 
@@ -21,8 +23,18 @@ def strip(s):
     return s
 
 
+DATETIME_FORMAT = '%Y-%m-%dT%H:%M:%S'
+
+
+def local_to_utc(dt, timezone):
+    tz = pytz.timezone(timezone)
+    dt = tz.localize(dt)
+    dt = dt.astimezone(pytz.utc)
+    return dt
+
+
 me_to_iso = lambda d: datetime.strptime(strip(d), '%d.%m.%Y').date().isoformat()
-me_to_iso_datetime = lambda d: datetime.strptime(strip(d), '%d.%m.%Y').isoformat(' ')
+me_to_iso_datetime = lambda d: datetime.strptime(strip(d), '%d.%m.%Y').isoformat()
 
 
 def hu_to_iso(d):
@@ -36,17 +48,20 @@ def hu_to_iso_datetime(d):
     d = strip(d).rstrip('.')
     if not len(d):
         return d
-    return datetime.strptime(d, '%Y.%m.%d.%H:%M:%S').isoformat(' ')
+    d = datetime.strptime(d, '%Y.%m.%d.%H:%M:%S')
+    d = local_to_utc(d, 'Europe/Budapest')
+    return d.strptime(DATETIME_FORMAT)
 
 
 def pl_to_datetime(d):
     if d == '0000-00-00':
         return None
     try:
-        date = datetime.strptime(d, '%Y-%m-%d %H:%M:%S')
+        d = datetime.strptime(d, '%Y-%m-%d %H:%M:%S')
+        d = local_to_utc(d, 'Europe/Warsaw')
     except ValueError:
-        date = datetime.strptime(d, '%Y-%m-%d')
-    return date
+        d = datetime.strptime(d, '%Y-%m-%d')
+    return d
 
 
 def pl_to_iso(d):
@@ -60,7 +75,7 @@ def pl_to_iso_datetime(d):
     dt = pl_to_datetime(d)
     if dt is None:
         return None
-    return dt.isoformat(' ')
+    return dt.strftime(DATETIME_FORMAT)
 
 
 class PersonLoader(ItemLoader):
