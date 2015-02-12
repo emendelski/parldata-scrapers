@@ -155,3 +155,24 @@ class Vote(Item):
     )
     role = scrapy.Field()
     weight = scrapy.Field()
+
+
+class Speech(Item):
+    creator_id = scrapy.Field(
+        input_processor=MapCompose(parse_identifier)
+    )
+    role = scrapy.Field()
+    attribution_text = scrapy.Field()
+    audience_id = scrapy.Field()
+    text = scrapy.Field()
+    audio = scrapy.Field()
+    video = scrapy.Field()
+    date = scrapy.Field()
+    title = scrapy.Field()
+    type = scrapy.Field()
+    position = scrapy.Field()
+    event_id = scrapy.Field()
+    sources = scrapy.Field(
+        input_processor=MapCompose(lambda x: {'url': x}),
+        output_processor=MakeList()
+    )

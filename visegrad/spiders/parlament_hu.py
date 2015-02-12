@@ -14,10 +14,10 @@ import os
 
 from visegrad.spiders import VisegradSpider
 from visegrad.items import Person, Vote, VoteEvent, Organization, Membership,\
-    Motion, Count
+    Motion, Count, Speech
 from visegrad.loaders import PersonLoader, ParlamentHuVoteLoader, ParlamentHuVoteEventLoader,\
     ParlamentHuOrganizationLoader, ParlamentHuMembershipLoader, ParlamentHuMotionLoader, \
-    CountLoader
+    CountLoader, ParlamentHuSpeechLoader
 from visegrad.api.parliaments import ParlamentHuApiExport
 
 
@@ -222,7 +222,82 @@ kepv_adat?p_azon=%s' % pk
             m.add_xpath('end_date', './/td[5]/text()')
             yield m.load_item()
 
+        speeches = response.css('#felszolalasok')
+        speeches_urls = speeches.xpath('.//tr/td/a/@href').re(r'.*p_ckl=40.*')
+        for speech in speeches_urls:
+            yield scrapy.Request(
+                urljoin(response.url, speech),
+                callback=self.parse_person_speeches
+            )
+
         yield person
+
+    def parse_person_speeches(self, response):
+        content = response.xpath('//table[3]')
+        pages = content.xpath('./tr[2]//a/@href').extract()
+        for page in pages:
+            yield scrapy.Request(
+                urljoin(response.url, page),
+                callback=self.parse_person_speeches
+            )
+
+        sessions = content.xpath(
+            './tr[1]//table//tr//td[1]//a/@href').extract()
+        for session in sessions:
+            yield scrapy.Request(
+                urljoin(response.url, session),
+                callback=self.parse_session_speeches
+            )
+
+    def parse_session_speeches(self, response):
+        content = response.css('.pair-content table')
+        speeches = content.xpath('.//tr')
+        for speech in speeches:
+            url = speech.xpath('.//td[1]//a/@href').extract()
+            if url:
+                yield scrapy.Request(
+                    urljoin(response.url, url[0]),
+                    callback=self.parse_speech,
+                    meta={
+                        'time': speech.xpath('.//td[5]/text()').re(
+                            r"\d{2}\:\d{2}\:\d{2}")
+                    }
+                )
+
+    def parse_speech(self, response):
+        paragraphs = response.css('p[class^="P"]')
+        text = '\n'.join(
+            ''.join(
+                span.xpath('.//text()').extract()
+            ) for span in paragraphs
+        ).strip()
+
+        l = ParlamentHuSpeechLoader(item=Speech(), selector=response,
+            scheme='parlament.hu/people')
+        l.add_value('text', text)
+        l.add_value('type', 'speech')
+        l.add_value('sources', [response.url])
+        l.add_xpath('position', '//b[1]/text()')
+        l.add_xpath('video', '//table//tr[6]//td[2]/a/@href')
+        l.add_xpath('creator_id', '//table//tr[2]//td[2]/a/@href',
+            re=r'ogy_kpv\.kepv_adat\?p_azon=(\w\d+)')
+
+        date = response.xpath(
+            '//table//tr[1]/th/text()').re(r'\d{4}\.\d{2}.\d{2}\.')
+        time = response.meta.get('time')
+        if date:
+            date = date[0]
+            if time:
+                date += time[0]
+            l.add_value('date', date)
+        item = l.load_item()
+        yield item
+        if 'creator_id' in item:
+            yield scrapy.Request(self.get_api_url(
+                self.PERSON_ENDPOINT, params={
+                    'p_azon': item['creator_id']['identifier']}),
+                callback=self.parse_person, meta={
+                    'p_azon': item['creator_id']['identifier']})
 
     def get_votes_requests(self):
         start = date.today() - timedelta(days = 60)
@@ -306,8 +381,10 @@ p_szavdatum=%s&p_szavkepv=I&p_szavkpvcsop=I&p_ckl=40'
             item = l.load_item()
             yield item
             yield scrapy.Request(self.get_api_url(
-                self.PERSON_ENDPOINT, params={'p_azon': item['voter_id']}),
-                callback=self.parse_person, meta={'p_azon': item['voter_id']})
+                self.PERSON_ENDPOINT, params={
+                    'p_azon': item['voter_id']['identifier']}),
+                callback=self.parse_person, meta={
+                    'p_azon': item['voter_id']['identifier']})
 
     def parse_motion(self, response):
         pass

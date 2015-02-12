@@ -48,9 +48,13 @@ def hu_to_iso_datetime(d):
     d = strip(d).rstrip('.')
     if not len(d):
         return d
-    d = datetime.strptime(d, '%Y.%m.%d.%H:%M:%S')
+    try:
+        d = datetime.strptime(d, '%Y.%m.%d.%H:%M:%S')
+    except ValueError:
+        d = d.rstrip('.')
+        d = datetime.strptime(d, '%Y.%m.%d')
     d = local_to_utc(d, 'Europe/Budapest')
-    return d.strptime(DATETIME_FORMAT)
+    return d.strftime(DATETIME_FORMAT)
 
 
 def pl_to_datetime(d):
@@ -256,3 +260,18 @@ class MojePanstwoVoteEventLoader(VoteEventLoader):
     start_date_in = MapCompose(pl_to_iso_datetime)
     result_in = MapCompose(lambda x: translate(
         x, MojePanstwoVoteEventLoader.VOTING_RESULTS))
+
+
+class SpeechLoader(ItemLoader):
+    default_output_processor = TakeFirst()
+
+
+def normalize_position_hu(pos):
+    pos = pos.split('-')[0]
+    if pos.isdigit():
+        return int(pos)
+
+
+class ParlamentHuSpeechLoader(SpeechLoader):
+    date_in = MapCompose(hu_to_iso_datetime)
+    position_in = MapCompose(normalize_position_hu)
