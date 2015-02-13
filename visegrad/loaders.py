@@ -275,3 +275,7 @@ def normalize_position_hu(pos):
 class ParlamentHuSpeechLoader(SpeechLoader):
     date_in = MapCompose(hu_to_iso_datetime)
     position_in = MapCompose(normalize_position_hu)
+
+
+class MojePanstwoSpeechLoader(SpeechLoader):
+    date_in = MapCompose(pl_to_iso_datetime)

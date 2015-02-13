@@ -12,9 +12,9 @@ import uuid
 from visegrad.spiders import VisegradSpider
 from visegrad.loaders import MojePanstwoPersonLoader, OrganizationLoader, \
     MojePanstwoMembershipLoader, MojePanstwoVoteEventLoader, \
-    MojePanstwoVoteLoader, MojePanstwoMotionLoader
+    MojePanstwoVoteLoader, MojePanstwoMotionLoader, MojePanstwoSpeechLoader
 from visegrad.items import Person, Organization, Membership, VoteEvent, Vote, \
-    Motion, Count
+    Motion, Count, Speech
 from visegrad.api.parliaments import SejmPlApiExport
 
 
@@ -44,6 +44,12 @@ class MojepanstwoPlSpider(VisegradSpider):
                 '/dane/dataset/sejm_glosowania/search.json',
                 limit=self.page_limit),
             callback=self.parse_vote_events,
+        )
+        yield scrapy.Request(
+            self.get_api_url(
+                '/dane/dataset/sejm_wystapienia/search.json',
+                limit=self.page_limit),
+            callback=self.parse_speeches
         )
 
     def parse_people(self, response):
@@ -250,6 +256,49 @@ class MojepanstwoPlSpider(VisegradSpider):
                     'id': person_id
                 }
             )
+
+    def parse_speeches(self, response):
+        data = json.loads(response.body_as_unicode())
+        speeches = data['search']['dataobjects']
+        for speech in speeches:
+            yield scrapy.Request(
+                self.get_api_url(
+                    speech['_id'],
+                    layers='html'),
+                callback=self.parse_speech
+            )
+
+        pagination = data['search']['pagination']
+        if pagination['to'] < pagination['total']:
+            page = response.meta.get('page', 1) + 1
+            yield scrapy.Request(
+                self.get_api_url(
+                    '/dane/dataset/sejm_wystapienia/search.json',
+                    page=page,
+                    limit=self.page_limit),
+                callback=self.parse_speeches,
+                meta={'page': page}
+            )
+
+    def parse_speech(self, response):
+        data = json.loads(response.body_as_unicode())
+        speech = data['object']['data']
+        l = MojePanstwoSpeechLoader(
+            item=Speech(), scheme='mojepanstwo.pl/people')
+        l.add_value('title', speech['sejm_wystapienia.tytul'])
+        l.add_value('creator_id', speech['ludzie.posel_id'])
+        l.add_value('text', data['object']['layers']['html'])
+        l.add_value('date', speech['sejm_wystapienia.data'])
+        video = speech['sejm_wystapienia.yt_id']
+        if video and video != "0":
+            video = "https://www.youtube.com/watch?v=%s" % video
+        else:
+            video = speech['sejm_wystapienia.video']
+        if video == "0":
+            video = ""
+        l.add_value('video', video)
+        l.add_value('sources', [data['object']['_mpurl']])
+        yield l.load_item()
 
     def get_api_url(self, path, **params):
         url = self.api_url.rstrip('/')
