@@ -23,3 +23,12 @@ OUTPUT_PATH = 'data'
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
 # USER_AGENT = 'visegrad (+http://www.yourdomain.com)'
+
+try:
+    import json
+    with open('private.json', 'r') as f:
+        private = json.loads(f.read())
+        for key in private:
+            globals()[key] = private[key]
+except IOError:
+    pass

@@ -83,4 +83,5 @@ sftp-config.json
 
 ### Visegrad ###
 data/
+private.json
 
