@@ -88,7 +88,7 @@ class VisegradApiExport(object):
             if 'start_date' in item:
                 where['start_date'] = item['start_date']
             sort = [('start_date', -1)]
-        elif endpoint == 'motions':
+        elif endpoint in ('motions', 'speeches'):
             where = {'sources.url': item['sources'][0]['url']}
         elif endpoint == 'vote-events':
             embed = ['votes']
@@ -231,3 +231,14 @@ class VisegradApiExport(object):
                         scheme=v['voter_id']['scheme'],
                         identifier=v['voter_id']['identifier'])
             self.batch_create('votes', votes_chunk)
+
+    def export_speeches(self):
+        speeches = self.load_json('speeches')
+
+        for speech in speeches:
+            if 'creator_id' in speech:
+                speech['creator_id'] = self.get_remote_id(
+                    'people',
+                    scheme=speech['creator_id']['scheme'],
+                    identifier=speech['creator_id']['identifier'])
+            self.get_or_create('speeches', speech)

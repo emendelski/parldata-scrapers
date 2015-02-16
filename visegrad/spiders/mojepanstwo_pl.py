@@ -286,7 +286,8 @@ class MojepanstwoPlSpider(VisegradSpider):
         l = MojePanstwoSpeechLoader(
             item=Speech(), scheme='mojepanstwo.pl/people')
         l.add_value('title', speech['sejm_wystapienia.tytul'])
-        l.add_value('creator_id', speech['ludzie.posel_id'])
+        if speech['ludzie.posel_id'] != "0":
+            l.add_value('creator_id', speech['ludzie.posel_id'])
         l.add_value('text', data['object']['layers']['html'])
         l.add_value('date', speech['sejm_wystapienia.data'])
         video = speech['sejm_wystapienia.yt_id']
