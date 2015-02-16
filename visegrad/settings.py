@@ -26,9 +26,17 @@ OUTPUT_PATH = 'data'
 
 try:
     import json
+    import os.path
     with open('private.json', 'r') as f:
         private = json.loads(f.read())
         for key in private:
             globals()[key] = private[key]
+        if 'VPAPI_PARLIAMENT_ENDPOINT' in private:
+            global LOG_FILE
+            LOG_FILE = os.path.join(
+                '/var/log/scrapers/',
+                private['VPAPI_PARLIAMENT_ENDPOINT'],
+                'scrapy.log'
+            )
 except IOError:
     pass
