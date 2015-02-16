@@ -1,6 +1,7 @@
 # -*- coding: utf8 -*-
 import scrapy
 from scrapy.contrib.loader.processor import TakeFirst
+from scrapy.conf import settings
 
 from urlparse import urlparse, parse_qs, urljoin
 
@@ -9,8 +10,6 @@ from urllib import urlencode
 from datetime import date, timedelta
 
 import re
-
-import os
 
 from visegrad.spiders import VisegradSpider
 from visegrad.items import Person, Vote, VoteEvent, Organization, Membership,\
@@ -70,7 +69,7 @@ kepviselocsoportjai-es-a-fuggetlen-kepviselok-1990-'
         return url
 
     def get_access_token(self):
-        return os.environ.get('HU_ORSZAGGYULES_ACCESS_TOKEN', '')
+        return settings.get('HU_ORSZAGGYULES_ACCESS_TOKEN', '')
 
     def get_api_url(self, endpoint, params = None):
         query = {'access_token': self.get_access_token()}

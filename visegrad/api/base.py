@@ -45,14 +45,14 @@ class VisegradApiExport(object):
             self.log = log
 
     def get_parliament(self):
-        return os.environ.get('VPAPI_PARLIAMENT_ENDPOINT', self.parliament)
+        return settings.get('VPAPI_PARLIAMENT_ENDPOINT', self.parliament)
 
     def get_user(self):
         return self.user
 
     def get_password(self):
         var = 'VPAPI_PWD_%s' % self.parliament_code.upper()
-        return os.environ.get(var)
+        return settings.get(var)
 
     def run_export(self):
         self.log('Exporting people', INFO)
