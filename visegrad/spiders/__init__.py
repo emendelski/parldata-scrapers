@@ -1,8 +1,7 @@
 import scrapy
+from scrapy.conf import settings
 from scrapy import signals
 from scrapy.xlib.pydispatch import dispatcher
-
-import os
 
 import vpapi
 
@@ -35,11 +34,11 @@ class VisegradSpider(scrapy.Spider):
         vpapi.patch('logs/%s' % self._log['id'], {'status': status})
 
     def get_parliament(self):
-        return os.environ.get('VPAPI_PARLIAMENT_ENDPOINT')
+        return settings.get('VPAPI_PARLIAMENT_ENDPOINT')
 
     def get_user(self):
         return self.user
 
     def get_password(self):
         var = 'VPAPI_PWD_%s' % self.parliament_code.upper()
-        return os.environ.get(var)
+        return settings.get(var)
