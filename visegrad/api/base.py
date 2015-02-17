@@ -65,6 +65,8 @@ class VisegradApiExport(object):
         self.export_motions()
         self.log('Exporting votes', INFO)
         self.export_votes()
+        self.log('Exporting speeches', INFO)
+        self.export_speeches()
 
     def load_json(self, source):
         filename = os.path.join(
