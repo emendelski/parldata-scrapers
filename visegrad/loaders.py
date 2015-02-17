@@ -279,3 +279,12 @@ class ParlamentHuSpeechLoader(SpeechLoader):
 
 class MojePanstwoSpeechLoader(SpeechLoader):
     date_in = MapCompose(pl_to_iso_datetime)
+
+
+class EventLoader(ItemLoader):
+    default_output_processor = TakeFirst()
+
+
+class MojePanstwoEventLoader(EventLoader):
+    start_date_in = MapCompose(pl_to_iso_datetime)
+    end_date_in = MapCompose(pl_to_iso_datetime)

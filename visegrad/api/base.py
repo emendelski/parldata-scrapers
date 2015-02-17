@@ -17,6 +17,7 @@ class VisegradApiExport(object):
     user = 'scraper'
     parliament_code = ''
     motions_ids = {}
+    events_ids = {}
 
     PEOPLE_FILE = 'Person.json'
     ORGANIZATIONS_FILE = 'Organization.json'
@@ -24,6 +25,8 @@ class VisegradApiExport(object):
     MOTIONS_FILE = 'Motion.json'
     VOTE_EVENTS_FILE = 'VoteEvent.json'
     VOTES_FILE = 'Vote.json'
+    EVENTS_FILE = 'Event.json'
+    SPEECHES_FILE = 'Speech.json'
     FILES = {
         'people': PEOPLE_FILE,
         'organizations': ORGANIZATIONS_FILE,
@@ -31,6 +34,8 @@ class VisegradApiExport(object):
         'motions': MOTIONS_FILE,
         'vote-events': VOTE_EVENTS_FILE,
         'votes': VOTES_FILE,
+        'events': EVENTS_FILE,
+        'speeches': SPEECHES_FILE,
     }
 
     def __init__(self, log = None):
@@ -61,6 +66,8 @@ class VisegradApiExport(object):
         self.export_organizations()
         self.log('Exporting memberships', INFO)
         self.export_memberships()
+        self.log('Exporting events', INFO)
+        self.export_events()
         self.log('Exporting motions', INFO)
         self.export_motions()
         self.log('Exporting votes', INFO)
@@ -103,6 +110,8 @@ class VisegradApiExport(object):
                 'vote_event_id': item['vote_event_id'],
                 'voter_id': item['voter_id'],
             }
+        elif endpoint == 'events':
+            where = {'identifier': item['identifier']}
         else:
             where = {
                 'identifiers': {'$elemMatch': item['identifiers'][0]}}
@@ -192,6 +201,15 @@ class VisegradApiExport(object):
                 item['organization_id'] = organization_id
                 self.get_or_create('memberships', item)
 
+    def export_events(self):
+        chamber = self.get_chamber()
+        events = self.load_json('events')
+
+        for item in events:
+            item['organization_id'] = chamber['id']
+            resp = self.get_or_create('events', item)
+            self.events_ids[item['identifier']] = resp['id']
+
     def export_motions(self):
         chamber = self.get_chamber()
         motions = self.load_json('motions')
@@ -202,6 +220,9 @@ class VisegradApiExport(object):
             if 'id' in item:
                 motion_id = item['id']
                 del item['id']
+            session_id = item.get('legislative_session_id')
+            if session_id:
+                item['legislative_session_id'] = self.events_ids[session_id]
             resp = self.get_or_create('motions', item)
 
             if motion_id:
@@ -218,6 +239,10 @@ class VisegradApiExport(object):
 
             if 'motion_id' in vote_event:
                 vote_event['motion_id'] = self.motions_ids[vote_event['motion_id']]
+
+            session_id = vote_event.get('legislative_session_id')
+            if session_id:
+                vote_event['legislative_session_id'] = self.events_ids[session_id]
 
             vote_event_resp = self.get_or_create(
                 'vote-events', vote_event, refresh=True)
@@ -243,4 +268,7 @@ class VisegradApiExport(object):
                     'people',
                     scheme=speech['creator_id']['scheme'],
                     identifier=speech['creator_id']['identifier'])
+            session_id = speech.get('event_id')
+            if session_id:
+                speech['event_id'] = self.events_ids[session_id]
             self.get_or_create('speeches', speech)

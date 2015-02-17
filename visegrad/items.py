@@ -176,3 +176,16 @@ class Speech(Item):
         input_processor=MapCompose(lambda x: {'url': x}),
         output_processor=MakeList()
     )
+
+
+class Event(Item):
+    name = scrapy.Field()
+    identifier = scrapy.Field()
+    organization_id = scrapy.Field()
+    type = scrapy.Field()
+    start_date = scrapy.Field()
+    end_date = scrapy.Field()
+    sources = scrapy.Field(
+        input_processor=MapCompose(lambda x: {'url': x}),
+        output_processor=MakeList()
+    )
