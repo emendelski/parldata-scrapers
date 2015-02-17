@@ -270,7 +270,6 @@ class VisegradApiExport(object):
         for speech in speeches:
             if 'creator_id' in speech:
                 speech['creator_id'] = self.get_remote_id(
-                    'people',
                     scheme=speech['creator_id']['scheme'],
                     identifier=speech['creator_id']['identifier'])
             session_id = speech.get('event_id')
