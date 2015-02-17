@@ -177,6 +177,11 @@ class VisegradApiExport(object):
 
         for person in people:
             resp = self.get_or_create('people', person)
+            membership = {
+                'person_id': resp['id'],
+                'organization_id': chamber['id']
+            }
+            self.get_or_create('memberships', membership)
 
     def export_organizations(self):
         chamber = self.get_chamber()
