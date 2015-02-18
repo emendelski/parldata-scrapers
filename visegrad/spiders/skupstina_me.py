@@ -63,7 +63,7 @@ index.php?strana=zakoni&search=true'
             callback=self.parse_person)
 
     def parse_person(self, response):
-        content = response.css('.poslanici')
+        content = response.css('.item-page')
         breadcrumbs = response.css('ul.breadcrumb a.pathway')
 
         l = SkupstinaMePersonLoader(item=Person(), selector=content,
