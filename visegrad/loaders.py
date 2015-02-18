@@ -243,7 +243,9 @@ class VoteEventLoader(ItemLoader):
 class ParlamentHuVoteEventLoader(VoteEventLoader):
     VOTING_RESULTS = {
         u'Elfogadott': 'pass',
-        u'Elvetett': 'fail'
+        u'Elvetett': 'fail',
+        u'Határozatképes': 'pass',  # quorum
+        u'Határozatképtelen': 'fail'
     }
 
     start_date_in = MapCompose(hu_to_iso_datetime)

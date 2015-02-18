@@ -338,7 +338,10 @@ p_szavdatum=%s&p_szavkepv=I&p_szavkpvcsop=I&p_ckl=40'
                 c.add_value('option', option)
                 xpath = u'.//tulajdonsag[@nev=\'%s\']/@ertek' % tag_attr
                 c.add_xpath('value', xpath)
-                counts.append(c.load_item())
+                count = c.load_item()
+                if count.get('value'):
+                    counts.append(count)
+
             l.add_value('counts', counts)
 
             yield l.load_item()
