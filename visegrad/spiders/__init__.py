@@ -23,12 +23,12 @@ class VisegradSpider(scrapy.Spider):
         self.log_start()
 
     def log_start(self):
-        self._log = vpapi.post(
-            'logs',
-            {
-                'status': 'running'
-            }
-        )
+        log_item = {
+            'status': 'running'
+        }
+        if settings.get('LOG_FILE'):
+            log_item['file'] = settings['LOG_FILE']
+        self._log = vpapi.post('logs', log_item)
 
     def log_finish(self, status):
         vpapi.patch('logs/%s' % self._log['id'], {'status': status})
