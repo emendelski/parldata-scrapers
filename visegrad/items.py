@@ -143,6 +143,10 @@ class VoteEvent(Item):
     counts = scrapy.Field(output_processor=MakeList())
     start_date = scrapy.Field()
     end_date = scrapy.Field()
+    sources = scrapy.Field(
+        input_processor=MapCompose(lambda x: {'url': x}),
+        output_processor=MakeList()
+    )
 
 
 class Vote(Item):

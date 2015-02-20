@@ -321,6 +321,8 @@ kepv_adat?p_azon=%s' % pk
         VOTE_URL = 'http://www.parlament.hu/internet/cplsql/ogy_szav.szav_lap_egy?\
 p_szavdatum=%s&p_szavkepv=I&p_szavkpvcsop=I&p_ckl=40'
         for voting in response.xpath('//szavazas'):
+            voting_id = voting.xpath('./@idopont').extract()[0]
+
             l = ParlamentHuVoteEventLoader(item=VoteEvent(), selector=voting)
             l.add_xpath('identifier', './@idopont')
             l.add_xpath('start_date', './@idopont')
@@ -343,9 +345,9 @@ p_szavdatum=%s&p_szavkepv=I&p_szavkpvcsop=I&p_ckl=40'
                     counts.append(count)
 
             l.add_value('counts', counts)
+            l.add_value('sources', VOTE_URL % voting_id)
 
             yield l.load_item()
-            voting_id = voting.xpath('./@idopont').extract()[0]
 
             motions = voting.xpath('.//inditvanyok/inditvany')
             for motion in motions:
