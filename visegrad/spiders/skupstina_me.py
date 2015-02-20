@@ -6,9 +6,11 @@ import re
 from urlparse import urljoin, parse_qs
 
 from visegrad.spiders import VisegradSpider
-from visegrad.items import Person, Organization, Membership, Motion
+from visegrad.items import Person, Organization, Membership, Motion, Event,\
+        Speech
 from visegrad.loaders import SkupstinaMePersonLoader, OrganizationLoader, MembershipLoader, \
-        SkupstinaMeMotionLoader
+        SkupstinaMeMotionLoader, SkupstinaMeEventLoader,\
+        SkupstinaMeSpeechLoader
 from visegrad.api.parliaments import SkustinaMeApiExport
 
 
@@ -37,6 +39,8 @@ class SkupstinaMeSpider(VisegradSpider):
 administrativni-odbor/aktuelnosti'
     MOTIONS_LIST_URL = 'http://www.skupstina.me/~skupcg/skupstina/\
 index.php?strana=zakoni&search=true'
+    SITTINGS_LIST_URL = 'http://www.skupstina.me/~skupcg/skupstina/\
+index.php?strana=sjednice&tipS=0'
     PARLIAMENT_ID = '17'
 
     def make_requests_from_iterable(self, urls, base_url = None, **kwargs):
@@ -55,6 +59,8 @@ index.php?strana=zakoni&search=true'
             method='POST',
             callback=self.parse_motions
         )
+        yield scrapy.Request(
+            self.SITTINGS_LIST_URL, callback=self.parse_sittings)
 
     def parse_people(self, response):
         links = response.css('.poslanici h3 a::attr(href)').extract()
@@ -184,4 +190,47 @@ index.php?strana=zakoni&search=true'
                 value = motion_dict.get(k)
                 if value:
                     l.add_value(keys[k], value)
+            yield l.load_item()
+
+    def parse_sittings(self, response):
+        links = response.css('td.sjednica a')
+        for link in links:
+            url = urljoin(response.url, link.xpath('.//@href').extract()[0])
+            name = link.xpath('.//text()').extract()
+            yield scrapy.Request(
+                url,
+                callback=self.parse_sitting,
+                meta={
+                    'name': name
+                }
+            )
+
+    def parse_sitting(self, response):
+        content = response.css('.center_content')
+        l = SkupstinaMeEventLoader(item=Event(type='sitting'), selector=content)
+        l.add_value('name', response.meta['name'])
+        sitting_id = parse_qs(response.url)['sjednicaid']
+        l.add_value('identifier', sitting_id)
+        l.add_xpath(
+            'start_date',
+            ".//tr[td//text()[contains(., 'Datum')]]/td[2]//text()"
+        )
+        l.add_xpath(
+            'end_date',
+            ".//tr[td//text()[contains(., 'Datum')]]/td[2]//text()"
+        )
+        l.add_value('sources', [response.url])
+        sitting = l.load_item()
+        yield sitting
+
+        speeches = content.xpath(
+            ".//li[text()[contains(., 'Autorizovani fonografski zapis.')]]")
+        if speeches:
+            url = speeches.xpath('.//a/@href').extract()[0]
+            l = SkupstinaMeSpeechLoader(item=Speech(), selector=speeches)
+            l.add_value('event_id', sitting['identifier'])
+            l.add_xpath(
+                'title',
+                ".//tr[td//text()[contains(., 'Opis')]]/td[2]//text()")
+            l.add_value('sources', [urljoin(response.url, url)])
             yield l.load_item()

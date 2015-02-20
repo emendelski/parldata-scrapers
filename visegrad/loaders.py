@@ -33,8 +33,12 @@ def local_to_utc(dt, timezone):
     return dt
 
 
-me_to_iso = lambda d: datetime.strptime(strip(d), '%d.%m.%Y').date().isoformat()
-me_to_iso_datetime = lambda d: datetime.strptime(strip(d), '%d.%m.%Y').isoformat()
+me_to_datetime = lambda d: datetime.strptime(strip(d).rstrip('.'), '%d.%m.%Y')
+me_to_iso = lambda d: me_to_datetime(d).date().isoformat()
+me_to_iso_datetime = lambda d: me_to_datetime(d).isoformat()
+me_date_range = lambda d: map(me_to_datetime, d.split(';'))
+me_start_date = lambda d: min(me_date_range(d)).isoformat()
+me_end_date = lambda d: max(me_date_range(d)).isoformat()
 
 
 def hu_to_iso(d):
@@ -265,6 +269,7 @@ class MojePanstwoVoteEventLoader(VoteEventLoader):
 
 
 class SpeechLoader(ItemLoader):
+    default_input_processor = MapCompose(strip)
     default_output_processor = TakeFirst()
 
 
@@ -283,10 +288,20 @@ class MojePanstwoSpeechLoader(SpeechLoader):
     date_in = MapCompose(pl_to_iso_datetime)
 
 
+class SkupstinaMeSpeechLoader(SpeechLoader):
+    pass
+
+
 class EventLoader(ItemLoader):
+    default_input_processor = MapCompose(strip)
     default_output_processor = TakeFirst()
 
 
 class MojePanstwoEventLoader(EventLoader):
     start_date_in = MapCompose(pl_to_iso_datetime)
     end_date_in = MapCompose(pl_to_iso_datetime)
+
+
+class SkupstinaMeEventLoader(EventLoader):
+    start_date_in = MapCompose(me_start_date)
+    end_date_in = MapCompose(me_end_date)
