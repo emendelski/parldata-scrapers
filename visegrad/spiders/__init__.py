@@ -34,7 +34,8 @@ class VisegradSpider(scrapy.Spider):
         vpapi.patch('logs/%s' % self._log['id'], {'status': status})
 
     def get_parliament(self):
-        return settings.get('VPAPI_PARLIAMENT_ENDPOINT')
+        default_endpoint = '/'.join(self.parliament_code.lower().split('_'))
+        return settings.get('VPAPI_PARLIAMENT_ENDPOINT', default_endpoint)
 
     def get_user(self):
         return self.user
