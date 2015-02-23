@@ -3,7 +3,7 @@ from visegrad.api.base import VisegradApiExport
 
 
 class SkustinaMeApiExport(VisegradApiExport):
-    parliament = 'me/skupstina-test'
+    parliament = 'me/skupstina'
     parliament_code = 'ME_SKUPSTINA'
     domain = 'skupstina.me'
 
