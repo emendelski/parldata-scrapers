@@ -66,7 +66,11 @@ class ExportPipeline(object):
             self.files[filename].close()
 
         status = 'finished' if reason == 'finished' else 'failed'
-        if reason == 'finished' and spider.exporter_class:
+
+        if spider.crawler.stats.get_value('log_count/ERROR'):
+            status = 'failed'
+
+        if status == 'finished' and spider.exporter_class:
             exporter = spider.exporter_class(log=spider.log)
             try:
                 exporter.run_export()

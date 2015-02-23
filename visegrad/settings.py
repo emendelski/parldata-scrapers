@@ -24,6 +24,8 @@ OUTPUT_PATH = 'data'
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
 # USER_AGENT = 'visegrad (+http://www.yourdomain.com)'
 
+CLOSESPIDER_ERRORCOUNT = 1
+
 try:
     import json
     import os.path
