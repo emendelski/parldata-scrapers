@@ -16,6 +16,7 @@ class VisegradApiExport(object):
     domain = ''
     user = 'scraper'
     parliament_code = ''
+    single_chamber = True
     motions_ids = {}
     events_ids = {}
 
@@ -163,12 +164,12 @@ class VisegradApiExport(object):
             self._ids[key] = item['id']
             return item['id']
 
-    def make_chamber(self):
+    def make_chamber(self, index):
         raise NotImplementedError()
 
-    def get_chamber(self):
+    def get_chamber(self, index=0):
         if not self._chamber:
-            self._chamber = self.make_chamber()
+            self._chamber = self.make_chamber(index)
         return self._chamber
 
     def export_people(self):
@@ -177,19 +178,26 @@ class VisegradApiExport(object):
 
         for person in people:
             resp = self.get_or_create('people', person)
-            membership = {
-                'person_id': resp['id'],
-                'organization_id': chamber['id']
-            }
-            self.get_or_create('memberships', membership)
+            if self.single_chamber:
+                membership = {
+                    'person_id': resp['id'],
+                    'organization_id': chamber['id']
+                }
+                self.get_or_create('memberships', membership)
 
     def export_organizations(self):
         chamber = self.get_chamber()
         organizations = self.load_json('organizations')
 
         for organization in organizations:
-            organization['parent_id'] = chamber['id']
-            resp = self.get_or_create('organizations', organization)
+            if self.single_chamber and 'parent_id' not in organization:
+                organization['parent_id'] = chamber['id']
+            elif 'parent_id' in organization:
+                organization['parent_id'] = self.get_remote_id(
+                    scheme=organization['parent_id']['scheme'],
+                    identifier=organization['parent_id']['identifier']
+                )
+            self.get_or_create('organizations', organization)
 
     def export_memberships(self):
         memberships = self.load_json('memberships')

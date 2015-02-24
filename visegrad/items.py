@@ -78,7 +78,7 @@ class Organization(Item):
         output_processor=MakeList()
     )
     classification = scrapy.Field()
-    parent = scrapy.Field()
+    parent_id = scrapy.Field()
     dissolution_date = scrapy.Field()
     founding_date = scrapy.Field()
     contact_details = scrapy.Field()

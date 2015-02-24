@@ -53,6 +53,37 @@ kepviselocsoportjai-es-a-fuggetlen-kepviselok-1990-'
     }
     VOTES_START_DATE = date(2014, 4, 26)
 
+    PARLIAMENTS_IDENTIFIERS = {
+        '2014-': {
+            'scheme': 'parlament.hu/chamber',
+            'identifier': '40'
+        },
+        '2010-2014': {
+            'scheme': 'parlament.hu/chamber',
+            'identifier': '39'
+        },
+        '2006-2010': {
+            'scheme': 'parlament.hu/chamber',
+            'identifier': '38'
+        },
+        '2002-2006': {
+            'scheme': 'parlament.hu/chamber',
+            'identifier': '37'
+        },
+        '1998-2002': {
+            'scheme': 'parlament.hu/chamber',
+            'identifier': '36'
+        },
+        '1994-98': {
+            'scheme': 'parlament.hu/chamber',
+            'identifier': '35'
+        },
+        '1990-94': {
+            'scheme': 'parlament.hu/chamber',
+            'identifier': '34'
+        }
+    }
+
     def start_requests(self):
         yield scrapy.Request(self.PARTIES_URL, callback=self.parse_parties)
         yield scrapy.Request(self.COMMITTEES_URL, callback=self.parse_commitees)
@@ -91,10 +122,12 @@ kepviselocsoportjai-es-a-fuggetlen-kepviselok-1990-'
 
     def parse_commitee(self, response):
         query = parse_qs(urlparse(response.url).query)
-        committee_id = 'p_biz=%(p_biz)s&p_ckl=%(p_ckl)s' % dict(
+        query_dict = dict(
             (k.lower(), ''.join(v).upper())
             for k, v in query.iteritems()
         )
+        committee_id = 'p_biz=%(p_biz)s&p_ckl=%(p_ckl)s' % query_dict
+        year = query_dict['p_ckl']
 
         content = response.css('.pair-content')
 
@@ -107,6 +140,10 @@ kepviselocsoportjai-es-a-fuggetlen-kepviselok-1990-'
             'founding_date', u'.//tr[contains(td[1], "Létrehozás")]/td[2]/text()')
         l.add_xpath(
             'dissolution_date', u'.//tr[contains(td[1], "Megszűnés")]/td[2]/text()')
+        l.add_value('parent_id', {
+            'scheme': 'parlament.hu/chamber',
+            'identifier': year
+        })
         l.add_value('sources', [response.url])
         yield l.load_item()
 
@@ -194,6 +231,28 @@ kepv_adat?p_azon=%s' % pk
             response_url=response.url)
         l.add_css('image', 'img.kepviselo-foto::attr(src)')
         person = l.load_item()
+
+        terms_of_service = response.css('#valasztas').xpath(".//tr[td]")
+        if terms_of_service:
+            header = response.css('#valasztas').xpath(
+                './/tr[th][2]/th/text()').extract()
+            try:
+                year_index = header.index('Ciklus')
+                start_date_index = header.index(u'Mand\xe1tum kezdete')
+                end_date_index = header.index(u'Mand\xe1tum v\xe9ge')
+            except ValueError:
+                terms_of_service = []
+
+            for term in terms_of_service:
+                row = map(unicode.strip, term.css('td::text').extract())
+                parliament_id = self.PARLIAMENTS_IDENTIFIERS[row[year_index]]
+
+                m = ParlamentHuMembershipLoader(item=Membership())
+                m.add_value('person_id', person['identifiers'])
+                m.add_value('organization_id', parliament_id)
+                m.add_value('start_date', row[start_date_index])
+                m.add_value('end_date', row[end_date_index])
+                yield m.load_item()
 
         committees = response.css('#biz-tagsag').xpath('.//tr[td]')
         for committee in committees:
