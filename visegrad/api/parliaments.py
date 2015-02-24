@@ -67,7 +67,7 @@ class ParlamentHuApiExport(VisegradApiExport):
                 'identifiers': [
                     {'identifier': '34', 'scheme': 'parlament.hu/chamber'}
                 ],
-                'name': u'1990 - 94',
+                'name': u'Országgyűlés 1990 - 94',
             }
         ]
 
