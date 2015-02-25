@@ -7,7 +7,7 @@ from urlparse import urlparse, parse_qs, urljoin
 
 from urllib import urlencode
 
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 
 import re
 
@@ -296,19 +296,29 @@ kepv_adat?p_azon=%s' % pk
 
     def parse_person_speeches(self, response):
         content = response.xpath('//table[3]')
-        pages = content.xpath('./tr[2]//a/@href').extract()
-        for page in pages:
+
+        sessions = content.xpath('./tr[1]//table//tr//td[1]//a')
+
+        stop_date = self.get_latest_speech_date()
+
+        for session in sessions:
+            dt = session.re(r'\d{4}\.\d{2}.\d{2}')
+            if dt:
+                dt = datetime.strptime(dt[0], '%Y.%m.%d').date()
+                if stop_date and dt < stop_date:
+                    raise StopIteration()
+            url = session.xpath('.//@href').extract()[0]
+            yield scrapy.Request(
+                urljoin(response.url, url),
+                callback=self.parse_session_speeches
+            )
+
+        next_page = content.xpath(
+            "./tr[2]//a[contains(text(), '>>')]/@href").extract()
+        for page in next_page:
             yield scrapy.Request(
                 urljoin(response.url, page),
                 callback=self.parse_person_speeches
-            )
-
-        sessions = content.xpath(
-            './tr[1]//table//tr//td[1]//a/@href').extract()
-        for session in sessions:
-            yield scrapy.Request(
-                urljoin(response.url, session),
-                callback=self.parse_session_speeches
             )
 
     def parse_session_speeches(self, response):
