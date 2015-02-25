@@ -18,6 +18,7 @@ from visegrad.loaders import PersonLoader, ParlamentHuVoteLoader, ParlamentHuVot
     ParlamentHuOrganizationLoader, ParlamentHuMembershipLoader, ParlamentHuMotionLoader, \
     CountLoader, ParlamentHuSpeechLoader
 from visegrad.api.parliaments import ParlamentHuApiExport
+from visegrad.utils import parse_hu_name
 
 
 def get_action_url(url):
@@ -181,6 +182,9 @@ kepviselocsoportjai-es-a-fuggetlen-kepviselok-1990-'
         l = PersonLoader(item=Person(), response=response,
             scheme='parlament.hu/people')
         pk = response.meta['p_azon']
+        name = response.xpath('//nev/text()').extract()[0]
+        splitted_name = parse_hu_name(name)
+        l.add_value(None, splitted_name)
         l.add_value('identifiers', pk)
         l.add_xpath('name', '//nev/text()')
         l.add_xpath('email', '//email/text()')

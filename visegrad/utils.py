@@ -1,10 +1,30 @@
 import itertools
 
+import re
+
 
 def parse_identifier(identifier, loader_context):
     r = {'identifier': identifier}
     if 'scheme' in loader_context:
         r['scheme'] = loader_context['scheme']
+    return r
+
+
+def parse_hu_name(value):
+    r = dict(
+        given_name='', family_name='', additional_name='', honorific_prefix='')
+
+    pattern = re.compile(r'^(dr\.\s?)', re.I | re.U)
+    match = pattern.match(value)
+    if match:
+        r['honorific_prefix'] = ''.join(match.groups()).strip()
+        value = pattern.sub('', value)
+
+    pattern = re.compile(r'^((?:\w\.\s)?[\w-]+)\s(\w+)$', re.U)
+    match = pattern.match(value)
+    if match:
+        r['family_name'], r['given_name'] = match.groups()
+
     return r
 
 
