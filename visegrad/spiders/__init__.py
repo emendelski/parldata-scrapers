@@ -3,6 +3,8 @@ from scrapy.conf import settings
 from scrapy import signals
 from scrapy.xlib.pydispatch import dispatcher
 
+from datetime import datetime
+
 import vpapi
 
 
@@ -43,3 +45,15 @@ class VisegradSpider(scrapy.Spider):
     def get_password(self):
         var = 'VPAPI_PWD_%s' % self.parliament_code.upper()
         return settings.get(var)
+
+    def get_latest_item(self, endpoint, time_key):
+        return vpapi.getfirst(endpoint, sort='-%s' % time_key)
+
+    def get_latest_date(self, endpoint, time_key):
+        latest = self.get_latest_item(endpoint, time_key)
+        if latest and time_key in latest:
+            dt = datetime.strptime(latest[time_key], '%Y-%m-%dT%H:%M:%S')
+            return dt.date()
+
+    def get_latest_vote_event_date(self):
+        return self.get_latest_date('vote-events', 'start_date')

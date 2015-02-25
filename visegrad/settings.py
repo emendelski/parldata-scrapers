@@ -26,6 +26,8 @@ OUTPUT_PATH = 'data'
 
 CLOSESPIDER_ERRORCOUNT = 1
 
+CRAWL_LATEST_ONLY = 0
+
 try:
     import json
     import os.path

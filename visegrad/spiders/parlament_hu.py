@@ -369,14 +369,19 @@ kepv_adat?p_azon=%s' % pk
                 'p_datum_tol': start.strftime("%Y.%m.%d"),
                 'p_datum_ig': end.strftime("%Y.%m.%d")
             })
-        while start > self.VOTES_START_DATE:
+
+        stop_date = self.VOTES_START_DATE
+        if settings.get('CRAWL_LATEST_ONLY'):
+            stop_date = self.get_latest_vote_event_date() or stop_date
+
+        while start > stop_date:
             yield scrapy.Request(
                 get_votes_url(start, end), callback=self.parse_votes)
             end = start - timedelta(days = 1)
             start = end - timedelta(days = 60)
 
-        start = self.VOTES_START_DATE
-        if start < end:
+        start = stop_date
+        if start <= end:
             yield scrapy.Request(
                 get_votes_url(start, end), callback=self.parse_votes)
 
