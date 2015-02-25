@@ -11,7 +11,7 @@ Contains functions for sending API requests conveniently.
 
 __all__ = [
 	'parliament', 'authorize', 'deauthorize',
-	'get', 'getitems', 'post', 'put', 'patch', 'delete',
+	'get', 'getall', 'getfirst', 'post', 'put', 'patch', 'delete',
 	'timezone', 'utc_to_local', 'local_to_utc',
 ]
 
@@ -90,10 +90,35 @@ def get(resource, **kwargs):
 	return resp.json()
 
 
-def getitems(resource, **kwargs):
-	"""As `get()` but returns only value of the response's `_items` field."""
+def getall(resource, **kwargs):
+	"""Generator that generates sequence of all found results without paging.
+	Lookup parameters are specified as keyword arguments.
+
+	Usage:
+		items = vpapi.getall(resource, where={...})
+		for i in items:
+			...
+	"""
+	page = 1
+	while True:
+		resp = get(resource, page=page, **kwargs)
+		for item in resp['_items']:
+			yield item
+		if 'next' not in resp['_links']: break
+		page += 1
+
+
+def getfirst(resource, **kwargs):
+	"""Returns first found item or None if there is none.
+	Lookup parameters are specified as keyword arguments.
+	"""
 	resp = get(resource, **kwargs)
-	return resp.get('_items', resp)
+	if '_items' not in resp:
+		return resp
+	if resp['_items']:
+		return resp['_items'][0]
+	else:
+		return None
 
 
 def post(resource, data, **kwargs):
@@ -163,33 +188,51 @@ def timezone(name):
 	LOCAL_TIMEZONE = pytz.timezone(name)
 
 
-def utc_to_local(dt_str):
-	"""Converts date-, time- or datetime-string returned by API from UTC
-	time to local time. The local timezone must be previously set by
-	`timezone()` function.
+def utc_to_local(val, to_string=None):
+	"""Converts datetime or its string representation in ISO 8601 format
+	from UTC time returned by API to local time. The local timezone must
+	be previously set by `vpapi.timezone()` function.
+
+	Returns the result in the same type as input if `to_string` is not
+	given. String output or datetime output can be enforced by setting
+	`to_string` to True or False respectively.
 	"""
 	if LOCAL_TIMEZONE is None:
 		raise ValueError('The local timezone must be set first, use vpapi.timezone()')
-	if ':' not in dt_str:
-		return dt_str
-	format = '%Y-%m-%dT%H:%M:%S' if '-' in dt_str else '%H:%M:%S'
-	dt = datetime.strptime(dt_str, format)
-	dt = pytz.utc.localize(dt)
-	dt = dt.astimezone(LOCAL_TIMEZONE)
-	return dt.strftime(format)
+	format = '%Y-%m-%dT%H:%M:%S'
+	out = datetime.strptime(val, format) if isinstance(val, str) else val
+	if not isinstance(out, datetime):
+		raise TypeError('Only datetime object or ISO 8601 string can be converted')
+
+	out = pytz.utc.localize(out)
+	out = out.astimezone(LOCAL_TIMEZONE)
+
+	if to_string or to_string is None and isinstance(val, str):
+		return out.strftime(format)
+	else:
+		return out
 
 
-def local_to_utc(dt_str):
-	"""Converts date-, time- or datetime-string in ISO 8601 format from
-	local time to UTC time required by API. The local timezone must be
-	previously set by `timezone()` function.
+def local_to_utc(val, to_string=True):
+	"""Converts datetime or its string representation in ISO 8601 format
+	from local time to UTC time required by API. The local timezone must
+	be previously set by `vpapi.timezone()` function.
+
+	Returns the result in the same type as input if `to_string` is not
+	given. String output or datetime output can be enforced by setting
+	`to_string` to True or False respectively.
 	"""
 	if LOCAL_TIMEZONE is None:
 		raise ValueError('The local timezone must be set first, use vpapi.timezone()')
-	if ':' not in dt_str:
-		return dt_str
-	format = '%Y-%m-%dT%H:%M:%S' if '-' in dt_str else '%H:%M:%S'
-	dt = dt_str.strptime(dt_str, format)
-	dt = LOCAL_TIMEZONE.localize(dt)
-	dt = dt.astimezone(pytz.utc)
-	return dt.strftime(format)
+	format = '%Y-%m-%dT%H:%M:%S'
+	out = datetime.strptime(val, format) if isinstance(val, str) else val
+	if not isinstance(out, datetime):
+		raise TypeError('Only datetime object or ISO 8601 string can be converted')
+
+	out = LOCAL_TIMEZONE.localize(out)
+	out = out.astimezone(pytz.utc)
+
+	if to_string or to_string is None and isinstance(val, str):
+		return out.strftime(format)
+	else:
+		return out
