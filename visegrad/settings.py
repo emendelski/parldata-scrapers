@@ -18,8 +18,7 @@ ITEM_PIPELINES = {
 
 OUTPUT_PATH = 'data'
 
-# DOWNLOAD_DELAY = 0.90
-# RANDOMIZE_DOWNLOAD_DELAY = False
+RANDOMIZE_DOWNLOAD_DELAY = True
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
 # USER_AGENT = 'visegrad (+http://www.yourdomain.com)'
