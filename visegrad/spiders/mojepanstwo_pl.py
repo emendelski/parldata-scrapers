@@ -5,6 +5,8 @@ from scrapy.exceptions import DropItem
 from urllib import urlencode
 from urlparse import urlparse
 
+from datetime import datetime
+
 import json
 
 import uuid
@@ -176,7 +178,15 @@ class MojepanstwoPlSpider(VisegradSpider):
     def parse_vote_events(self, response):
         data = json.loads(response.body_as_unicode())
         vote_events = data['search']['dataobjects']
+
+        stop_date = self.get_latest_vote_event_date()
+
         for vote_event in vote_events:
+            dt = vote_event['data'].get('sejm_glosowania.czas')
+            if stop_date and dt:
+                dt = datetime.strptime(dt, '%Y-%m-%d %H:%M:%S').date()
+                if dt < stop_date:
+                    raise StopIteration()
             yield scrapy.Request(
                 self.get_api_url(
                     vote_event['_id'],
@@ -280,7 +290,14 @@ class MojepanstwoPlSpider(VisegradSpider):
     def parse_speeches(self, response):
         data = json.loads(response.body_as_unicode())
         speeches = data['search']['dataobjects']
+
+        stop_date = self.get_latest_speech_date()
+
         for speech in speeches:
+            dt = speech['data']['sejm_wystapienia.data']
+            dt = datetime.strptime(dt, '%Y-%m-%d').date()
+            if dt < stop_date:
+                raise StopIteration()
             yield scrapy.Request(
                 self.get_api_url(
                     speech['_id'],
