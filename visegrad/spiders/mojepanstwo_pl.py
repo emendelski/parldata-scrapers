@@ -98,6 +98,8 @@ class MojepanstwoPlSpider(VisegradSpider):
         l.add_value('name', person['poslowie.nazwa'])
         l.add_value('given_name', person['poslowie.imiona'])
         l.add_value('family_name', person['poslowie.nazwisko'])
+        l.add_value(
+            'sort_name', '%(poslowie.nazwisko)s, %(poslowie.imiona)s' % person)
         l.add_value('identifiers', person['poslowie.id'])
         l.add_value('birth_date', person['poslowie.data_urodzenia'])
         if person['ludzie.id']:

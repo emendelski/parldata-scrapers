@@ -184,6 +184,10 @@ kepviselocsoportjai-es-a-fuggetlen-kepviselok-1990-'
         pk = response.meta['p_azon']
         name = response.xpath('//nev/text()').extract()[0]
         splitted_name = parse_hu_name(name)
+        if 'given_name' in splitted_name and 'family_name' in splitted_name:
+            splitted_name['sort_name'] = \
+                '%(family_name)s, %(given_name)s' % splitted_name
+
         l.add_value(None, splitted_name)
         l.add_value('identifiers', pk)
         l.add_xpath('name', '//nev/text()')
