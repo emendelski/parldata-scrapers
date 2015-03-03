@@ -51,6 +51,9 @@ class VisegradSpider(scrapy.Spider):
         return vpapi.getfirst(endpoint, sort='-%s' % time_key)
 
     def get_latest_date(self, endpoint, time_key):
+        if not settings.get('CRAWL_LATEST_ONLY'):
+            return None
+
         if endpoint in self.latest_dates:
             return self.latest_dates[endpoint]
 
