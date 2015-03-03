@@ -9,6 +9,8 @@ from urllib import urlencode
 
 from datetime import date, datetime, timedelta
 
+from w3lib.html import remove_tags
+
 import re
 
 from visegrad.spiders import VisegradSpider
@@ -341,12 +343,8 @@ kepv_adat?p_azon=%s' % pk
                 )
 
     def parse_speech(self, response):
-        paragraphs = response.css('p[class^="P"]')
-        text = '\n'.join(
-            ''.join(
-                span.xpath('.//text()').extract()
-            ) for span in paragraphs
-        ).strip()
+        paragraphs = response.css('p')[:-1]  # last p contains pagination
+        text = remove_tags(''.join(paragraphs.extract()))
 
         l = ParlamentHuSpeechLoader(item=Speech(), selector=response,
             scheme='parlament.hu/people')
