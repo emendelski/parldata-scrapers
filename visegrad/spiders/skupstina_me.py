@@ -60,7 +60,7 @@ index.php?strana=sjednice&tipS=0'
             callback=self.parse_motions
         )
         yield scrapy.Request(
-            self.SITTINGS_LIST_URL, callback=self.parse_sittings)
+            self.SITTINGS_LIST_URL, callback=self.parse_sessions)
 
     def parse_people(self, response):
         links = response.css('.poslanici h3 a::attr(href)').extract()
@@ -192,18 +192,38 @@ index.php?strana=sjednice&tipS=0'
                     l.add_value(keys[k], value)
             yield l.load_item()
 
-    def parse_sittings(self, response):
-        links = response.css('td.sjednica a')
-        for link in links:
-            url = urljoin(response.url, link.xpath('.//@href').extract()[0])
-            name = link.xpath('.//text()').extract()
-            yield scrapy.Request(
-                url,
-                callback=self.parse_sitting,
-                meta={
-                    'name': name
-                }
-            )
+    def parse_sessions(self, response):
+        content = response.css('.center_content')
+        sessions_num = len(content.css('td.poslanici'))
+        rows = content.xpath(".//tr[td[@class='poslanici'] or \
+td[@class='sjednica']]")
+
+        session_id = None
+
+        for row in rows:
+            session = row.css('td.poslanici')
+            sitting = row.css('td.sjednica')
+            if session:
+                session_id = str(sessions_num)
+                sessions_num -= 1
+                l = SkupstinaMeEventLoader(
+                    item=Event(type='session'), selector=session)
+                l.add_css('name', '::text')
+                l.add_value('identifier', session_id)
+                l.add_value('sources', response.url)
+                yield l.load_item()
+            elif sitting:
+                url = urljoin(
+                    response.url, sitting.xpath('.//@href').extract()[0])
+                name = sitting.css('::text').extract()
+                yield scrapy.Request(
+                    url,
+                    callback=self.parse_sitting,
+                    meta={
+                        'name': name,
+                        'parent_id': session_id
+                    }
+                )
 
     def parse_sitting(self, response):
         content = response.css('.center_content')
@@ -211,6 +231,7 @@ index.php?strana=sjednice&tipS=0'
         l.add_value('name', response.meta['name'])
         sitting_id = parse_qs(response.url)['sjednicaid']
         l.add_value('identifier', sitting_id)
+        l.add_value('parent_id', response.meta['parent_id'])
         l.add_xpath(
             'start_date',
             ".//tr[td//text()[contains(., 'Datum')]]/td[2]//text()"
