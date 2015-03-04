@@ -86,6 +86,14 @@ def pl_to_iso_datetime(d):
     return dt.strftime(DATETIME_FORMAT)
 
 
+def pl_make_session_id(value):
+    return 'sejm_posiedzenia/%s' % value
+
+
+def pl_make_sitting_id(value):
+    return 'sejm_posiedzenia_punkty/%s' % value
+
+
 class PersonLoader(ItemLoader):
     default_input_processor = MapCompose(strip)
     default_output_processor = TakeFirst()
@@ -202,6 +210,7 @@ class MojePanstwoMotionLoader(MotionLoader):
     date_in = MapCompose(pl_to_iso_datetime)
     result_in = MapCompose(lambda x: translate(
         x, MojePanstwoMotionLoader.VOTING_RESULTS))
+    legislative_session_id_in = MapCompose(strip, pl_make_session_id)
 
 
 class CountLoader(ItemLoader):
@@ -286,6 +295,7 @@ class ParlamentHuSpeechLoader(SpeechLoader):
 
 class MojePanstwoSpeechLoader(SpeechLoader):
     date_in = MapCompose(pl_to_iso_datetime)
+    event_id_in = MapCompose(strip, pl_make_sitting_id)
 
 
 class SkupstinaMeSpeechLoader(SpeechLoader):
@@ -300,6 +310,15 @@ class EventLoader(ItemLoader):
 class MojePanstwoEventLoader(EventLoader):
     start_date_in = MapCompose(pl_to_iso_datetime)
     end_date_in = MapCompose(pl_to_iso_datetime)
+
+
+class MojePanstwoSessionLoader(MojePanstwoEventLoader):
+    identifier_in = MapCompose(strip, pl_make_session_id)
+
+
+class MojePanstwoSittingLoader(MojePanstwoEventLoader):
+    identifier_in = MapCompose(strip, pl_make_sitting_id)
+    parent_id_in = MapCompose(strip, pl_make_session_id)
 
 
 def join_text(value):

@@ -15,7 +15,7 @@ from visegrad.spiders import VisegradSpider
 from visegrad.loaders import MojePanstwoPersonLoader, OrganizationLoader, \
     MojePanstwoMembershipLoader, MojePanstwoVoteEventLoader, \
     MojePanstwoVoteLoader, MojePanstwoMotionLoader, MojePanstwoSpeechLoader, \
-    MojePanstwoEventLoader
+    MojePanstwoSessionLoader, MojePanstwoSittingLoader
 from visegrad.items import Person, Organization, Membership, VoteEvent, Vote, \
     Motion, Count, Speech, Event
 from visegrad.api.parliaments import SejmPlApiExport
@@ -53,6 +53,13 @@ class MojepanstwoPlSpider(VisegradSpider):
                 '/dane/dataset/sejm_wystapienia/search.json',
                 limit=self.page_limit),
             callback=self.parse_speeches
+        )
+
+        yield scrapy.Request(
+            self.get_api_url(
+                'dane/dataset/sejm_posiedzenia_punkty/search.json',
+                limit=self.page_limit),
+            callback=self.parse_sittings
         )
 
     def parse_people(self, response):
@@ -230,11 +237,11 @@ class MojepanstwoPlSpider(VisegradSpider):
         motion_item = m.load_item()
         yield motion_item
 
-        sitting_id = motion_item.get('legislative_session_id')
-        if sitting_id:
+        session_id = motion_item.get('legislative_session_id')
+        if session_id:
             yield scrapy.Request(
-                self.get_api_url('/dane/sejm_posiedzenia/%s' % sitting_id),
-                callback=self.parse_sitting
+                self.get_api_url('/dane/%s' % session_id),
+                callback=self.parse_session
             )
 
         ve = MojePanstwoVoteEventLoader(item=VoteEvent(motion_id=motion_id))
@@ -242,7 +249,7 @@ class MojepanstwoPlSpider(VisegradSpider):
         ve.add_value('start_date', vote_event.get('sejm_glosowania.czas'))
         if vote_event['sejm_glosowania.wynik_id'] in ('1', '2'):
             m.add_value('result', vote_event['sejm_glosowania.wynik_id'])
-        ve.add_value('legislative_session_id', sitting_id)
+        ve.add_value('legislative_session_id', session_id)
         counts = dict((
             ('yes', vote_event['sejm_glosowania.z']),
             ('no', vote_event['sejm_glosowania.p']),
@@ -277,17 +284,49 @@ class MojepanstwoPlSpider(VisegradSpider):
                 }
             )
 
-    def parse_sitting(self, response):
+    def parse_session(self, response):
         data = json.loads(response.body_as_unicode())
-        sitting = data['object']['data']
+        session = data['object']['data']
 
-        l = MojePanstwoEventLoader(item=Event(type='sitting'))
-        l.add_value('name', sitting['sejm_posiedzenia.tytul'])
-        l.add_value('identifier', sitting['sejm_posiedzenia.id'])
-        l.add_value('start_date', sitting['sejm_posiedzenia.data_start'])
-        l.add_value('end_date', sitting['sejm_posiedzenia.data_stop'])
+        l = MojePanstwoSessionLoader(item=Event(type='session'))
+        l.add_value('name', session['sejm_posiedzenia.tytul'])
+        l.add_value('identifier', session['sejm_posiedzenia.id'])
+        l.add_value('start_date', session['sejm_posiedzenia.data_start'])
+        l.add_value('end_date', session['sejm_posiedzenia.data_stop'])
         l.add_value('sources', data['object']['_mpurl'])
         yield l.load_item()
+
+    def parse_sittings(self, response):
+        data = json.loads(response.body_as_unicode())
+        sittings = data['search']['dataobjects']
+        for s in sittings:
+            sitting = s['data']
+            l = MojePanstwoSittingLoader(item=Event(type='sitting'))
+            l.add_value('name', sitting['sejm_posiedzenia_punkty.tytul'])
+            l.add_value('identifier', sitting['sejm_posiedzenia_punkty.id'])
+            l.add_value(
+                'start_date', sitting.get('sejm_posiedzenia_punkty.data'))
+            l.add_value(
+                'parent_id', sitting['sejm_posiedzenia_punkty.posiedzenie_id'])
+            l.add_value('sources', s['_mpurl'])
+            item = l.load_item()
+            yield item
+            yield scrapy.Request(
+                self.get_api_url('/dane/sejm_posiedzenia/%(parent_id)s' % item),
+                callback=self.parse_session
+            )
+
+        pagination = data['search']['pagination']
+        if pagination['to'] < pagination['total']:
+            page = response.meta.get('page', 1) + 1
+            yield scrapy.Request(
+                self.get_api_url(
+                    '/dane/dataset/sejm_posiedzenia_punkty/search.json',
+                    page=page,
+                    limit=self.page_limit),
+                callback=self.parse_sittings,
+                meta={'page': page}
+            )
 
     def parse_speeches(self, response):
         data = json.loads(response.body_as_unicode())
@@ -298,7 +337,7 @@ class MojepanstwoPlSpider(VisegradSpider):
         for speech in speeches:
             dt = speech['data']['sejm_wystapienia.data']
             dt = datetime.strptime(dt, '%Y-%m-%d').date()
-            if dt < stop_date:
+            if stop_date and dt < stop_date:
                 raise StopIteration()
             yield scrapy.Request(
                 self.get_api_url(
@@ -329,7 +368,7 @@ class MojepanstwoPlSpider(VisegradSpider):
             l.add_value('creator_id', speech['ludzie.posel_id'])
         l.add_value('text', data['object']['layers']['html'])
         l.add_value('date', speech['sejm_wystapienia.data'])
-        l.add_value('event_id', speech['sejm_wystapienia.posiedzenie_id'])
+        l.add_value('event_id', speech['sejm_wystapienia.punkt_id'])
         video = speech['sejm_wystapienia.yt_id']
         if video and video != "0":
             video = "https://www.youtube.com/watch?v=%s" % video
@@ -339,15 +378,7 @@ class MojepanstwoPlSpider(VisegradSpider):
             video = ""
         l.add_value('video', video)
         l.add_value('sources', [data['object']['_mpurl']])
-        item = l.load_item()
-        yield item
-
-        sitting_id = item.get('event_id')
-        if sitting_id:
-            yield scrapy.Request(
-                self.get_api_url('/dane/sejm_posiedzenia/%s' % sitting_id),
-                callback=self.parse_sitting
-            )
+        yield l.load_item()
 
     def get_api_url(self, path, **params):
         url = self.api_url.rstrip('/')
