@@ -15,10 +15,10 @@ import re
 
 from visegrad.spiders import VisegradSpider
 from visegrad.items import Person, Vote, VoteEvent, Organization, Membership,\
-    Motion, Count, Speech
+    Motion, Count, Speech, Event
 from visegrad.loaders import PersonLoader, ParlamentHuVoteLoader, ParlamentHuVoteEventLoader,\
     ParlamentHuOrganizationLoader, ParlamentHuMembershipLoader, ParlamentHuMotionLoader, \
-    CountLoader, ParlamentHuSpeechLoader
+    CountLoader, ParlamentHuSpeechLoader, ParlamentHuEventLoader
 from visegrad.api.parliaments import ParlamentHuApiExport
 from visegrad.utils import parse_hu_name
 
@@ -328,17 +328,49 @@ kepv_adat?p_azon=%s' % pk
             )
 
     def parse_session_speeches(self, response):
-        content = response.css('.pair-content table')
-        speeches = content.xpath('.//tr')
-        for speech in speeches:
-            url = speech.xpath('.//td[1]//a/@href').extract()
-            if url:
+        content = response.css('.pair-content')
+
+        query = parse_qs(urlparse(response.url).query)
+        query_dict = dict(
+            (k.lower(), ''.join(v).upper())
+            for k, v in query.iteritems()
+        )
+        session_id = '%(p_ckl)s_%(p_nap)s' % query_dict
+
+        l = ParlamentHuEventLoader(item=Event(type='session'), selector=content)
+        l.add_xpath('name', './/h1[not(@class)]/text()')
+        l.add_xpath('start_date', './/h1[not(@class)]/text()',
+                    re=r'\d{4}\.\d{2}.\d{2}\.')
+        l.add_value('identifier', session_id)
+        l.add_value('sources', response.url)
+
+        session = l.load_item()
+        yield session
+
+        sections = content.css('table')
+
+        for n, section in enumerate(sections):
+            sitting_id = '%s_%d' % (session_id, n)
+            l = ParlamentHuEventLoader(
+                item=Event(type='sitting'), selector=section)
+            l.add_xpath('name', './/tr[1]/th//text()')
+            l.add_value('identifier', sitting_id)
+            l.add_value('parent_id', session_id)
+            l.add_value('sources', response.url)
+            sitting = l.load_item()
+            yield sitting
+
+            speeches = section.xpath('.//tr[td[1][a]]')
+
+            for speech in speeches:
+                url = speech.xpath('.//td[1]//a/@href').extract()
                 yield scrapy.Request(
                     urljoin(response.url, url[0]),
                     callback=self.parse_speech,
                     meta={
                         'time': speech.xpath('.//td[5]/text()').re(
-                            r"\d{2}\:\d{2}\:\d{2}")
+                            r"\d{2}\:\d{2}\:\d{2}"),
+                        'event_id': sitting_id
                     }
                 )
 
@@ -355,6 +387,7 @@ kepv_adat?p_azon=%s' % pk
         l.add_xpath('video', '//table//tr[6]//td[2]/a/@href')
         l.add_xpath('creator_id', '//table//tr[2]//td[2]/a/@href',
             re=r'ogy_kpv\.kepv_adat\?p_azon=(\w\d+)')
+        l.add_value('event_id', response.meta['event_id'])
 
         date = response.xpath(
             '//table//tr[1]/th/text()').re(r'\d{4}\.\d{2}.\d{2}\.')

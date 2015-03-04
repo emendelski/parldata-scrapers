@@ -1,6 +1,6 @@
 # -*- coding: utf8 -*-
 from scrapy.contrib.loader import ItemLoader
-from scrapy.contrib.loader.processor import TakeFirst, MapCompose
+from scrapy.contrib.loader.processor import TakeFirst, MapCompose, Compose
 
 from datetime import datetime
 
@@ -300,6 +300,16 @@ class EventLoader(ItemLoader):
 class MojePanstwoEventLoader(EventLoader):
     start_date_in = MapCompose(pl_to_iso_datetime)
     end_date_in = MapCompose(pl_to_iso_datetime)
+
+
+def join_text(value):
+    stripped = map(strip, value)
+    return ' '.join(filter(len, stripped))
+
+
+class ParlamentHuEventLoader(EventLoader):
+    name_in = Compose(join_text)
+    start_date_in = MapCompose(hu_to_iso_datetime)
 
 
 class SkupstinaMeEventLoader(EventLoader):
