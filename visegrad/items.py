@@ -186,6 +186,7 @@ class Event(Item):
     name = scrapy.Field()
     identifier = scrapy.Field()
     organization_id = scrapy.Field()
+    parent_id = scrapy.Field()
     type = scrapy.Field()
     start_date = scrapy.Field()
     end_date = scrapy.Field()
