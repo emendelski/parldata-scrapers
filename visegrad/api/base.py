@@ -76,7 +76,10 @@ class VisegradApiExport(object):
         self.log('Exporting speeches', INFO)
         self.export_speeches()
 
-    def load_json(self, source):
+    def load_json(self, source, exclude=None):
+        if exclude is None:
+            exclude = lambda x: False
+
         filename = os.path.join(
             settings.get('OUTPUT_PATH', ''),
             self.domain,
@@ -85,7 +88,9 @@ class VisegradApiExport(object):
         if os.path.exists(filename):
             with open(filename, 'r') as f:
                 for line in f:
-                    yield json.loads(line.rstrip())
+                    item = json.loads(line.rstrip())
+                    if not exclude(item):
+                        yield item
 
     def get_or_create(self, endpoint, item, refresh=False):
         sort = []
@@ -216,10 +221,19 @@ class VisegradApiExport(object):
 
     def export_events(self):
         chamber = self.get_chamber()
-        events = self.load_json('events')
+        parent_events = self.load_json(
+            'events', exclude=lambda x: 'parent_id' in x)
+        child_events = self.load_json(
+            'events', exclude=lambda x: 'parent_id' not in x)
 
-        for item in events:
+        for item in parent_events:
             item['organization_id'] = chamber['id']
+            resp = self.get_or_create('events', item)
+            self.events_ids[item['identifier']] = resp['id']
+
+        for item in child_events:
+            item['organization_id'] = chamber['id']
+            item['parent_id'] = self.events_ids[item['parent_id']]
             resp = self.get_or_create('events', item)
             self.events_ids[item['identifier']] = resp['id']
 
