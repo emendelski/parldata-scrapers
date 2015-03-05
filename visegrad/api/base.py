@@ -100,8 +100,8 @@ class VisegradApiExport(object):
                 'person_id': item['person_id'],
                 'organization_id': item['organization_id']
             }
-            if 'start_date' in item:
-                where['start_date'] = item['start_date']
+            where['start_date'] = item.get('start_date', {"$exists": False})
+
             sort = [('start_date', -1)]
         elif endpoint in ('motions', 'speeches'):
             where = {'sources.url': item['sources'][0]['url']}
@@ -122,13 +122,13 @@ class VisegradApiExport(object):
             where = {
                 'identifiers': {'$elemMatch': item['identifiers'][0]}}
         created = False
-        resp = vpapi.get(endpoint, where=where, sort=sort)
-        if not resp['_items']:
+        resp = vpapi.getfirst(endpoint, where=where, sort=sort)
+        if not resp:
             resp = vpapi.post(endpoint, item)
             created = True
             self.log('Created %s' % resp['_links']['self']['href'], DEBUG)
         else:
-            pk = resp['_items'][0]['id']
+            pk = resp['id']
             resp = vpapi.put("%s/%s" % (endpoint, pk), item)
             self.log('Updated %s' % resp['_links']['self']['href'], DEBUG)
 
