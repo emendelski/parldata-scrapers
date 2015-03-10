@@ -92,10 +92,14 @@ class VisegradApiExport(object):
                     if not exclude(item):
                         yield item
 
-    def get_or_create(self, endpoint, item, refresh=False):
+    def get_or_create(self, endpoint, item, refresh=False, where_keys=None):
         sort = []
         embed = []
-        if endpoint == 'memberships':
+        where = {}
+        if where_keys:
+            for key in where_keys:
+                where[key] = item[key]
+        elif endpoint == 'memberships':
             where = {
                 'person_id': item['person_id'],
                 'organization_id': item['organization_id']

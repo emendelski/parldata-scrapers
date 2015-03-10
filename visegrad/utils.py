@@ -1,5 +1,7 @@
 import itertools
 
+import subprocess
+
 import re
 
 
@@ -41,6 +43,34 @@ def chunks(iterator, size=50, filter_func=None):
     while chunk:
         yield chunk
         chunk = list(itertools.islice(filtered_iterator, size))
+
+
+def parse_me_pdf(filename):
+    pdf_parser = subprocess.Popen(
+        ['pdftotext', filename, '-'], stdout=subprocess.PIPE)
+    output_iter = iter(pdf_parser.stdout.readline, '')
+    output_iter = itertools.imap(lambda x: x.decode('utf-8'), output_iter)
+    output_iter = itertools.imap(unicode.strip, output_iter)
+    # filter empty lines
+    output_iter = itertools.ifilter(len, output_iter)
+    page = 1
+
+    item = {'creator': None, 'text': []}
+
+    for line in output_iter:
+        if line == str(page):
+            page += 1
+            continue
+        if line.endswith(':') and line.isupper():
+            if item['creator'] and item['text']:
+                item['text'] = '\n'.join(item['text'])
+                yield item
+            item = {'creator': line.rstrip(':').strip(), 'text': []}
+        else:
+            item['text'].append(line)
+    if item['creator'] and item['text']:
+        item['text'] = '\n'.join(item['text'])
+        yield item
 
 
 class MakeList(object):

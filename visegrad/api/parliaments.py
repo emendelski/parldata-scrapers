@@ -1,5 +1,16 @@
 # -*- coding: utf8 -*-
+from scrapy.log import DEBUG
+
+import tempfile
+
+import re
+
+import requests
+
+import vpapi
+
 from visegrad.api.base import VisegradApiExport
+from visegrad.utils import parse_me_pdf
 
 
 class SkustinaMeApiExport(VisegradApiExport):
@@ -17,6 +28,62 @@ class SkustinaMeApiExport(VisegradApiExport):
         }
 
         return self.get_or_create('organizations', chamber)
+
+    def export_speeches(self):
+        speeches = self.load_json('speeches')
+        people = {}
+        titles_regex = re.compile(
+            r'([dD]r )|(mr )|(doc\. )|(Prof\. )|(Prim\.)')
+        spaces_regex = re.compile(r'\s{2,}')
+        prefix_regex = re.compile(
+            r'(pred\u015bedavaju\u0107i )|(pred\u015bednik )')
+
+        for p in vpapi.getall('people'):
+            name = titles_regex.sub('', p['name'])
+            name = name.replace('-', ' ')
+            name = spaces_regex.sub(' ', name).lower()
+            people[name] = p['id']
+
+        for speech in speeches:
+            session_id = speech.get('event_id')
+            speech['event_id'] = self.events_ids[session_id]
+            url = speech['sources'][0]['url']
+            if url.endswith('.pdf'):
+                parsed_speeches = self.download_pdf(url)
+                for n, s in enumerate(parsed_speeches):
+                    text_speech = speech.copy()
+                    text_speech['text'] = s['text']
+                    text_speech['position'] = n + 1
+                    text_speech['type'] = 'speech'
+
+                    creator = s['creator'].lower()
+                    creator = prefix_regex.sub('', creator)
+                    creator = creator.replace('-', ' ')
+                    creator = spaces_regex.sub(' ', creator)
+                    if creator in people:
+                        text_speech['creator_id'] = people[creator]
+
+                    self.get_or_create(
+                        'speeches',
+                        text_speech,
+                        where_keys=['event_id', 'position']
+                    )
+            else:
+                self.get_or_create('speeches', speech)
+
+    def download_pdf(self, url):
+        pdf_file = tempfile.NamedTemporaryFile()
+        self.log('Dowloading file', DEBUG)
+        r = requests.get(url, stream=True)
+        with pdf_file:
+            for chunk in r.iter_content(chunk_size=1024):
+                if chunk:
+                    pdf_file.write(chunk)
+                    pdf_file.flush()
+            r.close()
+            self.log('Parsing file', DEBUG)
+            for i in parse_me_pdf(pdf_file.name):
+                yield i
 
 
 class ParlamentHuApiExport(VisegradApiExport):
