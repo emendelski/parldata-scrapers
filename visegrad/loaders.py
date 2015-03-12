@@ -295,7 +295,6 @@ class ParlamentHuSpeechLoader(SpeechLoader):
 
 class MojePanstwoSpeechLoader(SpeechLoader):
     date_in = MapCompose(pl_to_iso_datetime)
-    event_id_in = MapCompose(strip, pl_make_sitting_id)
 
 
 class SkupstinaMeSpeechLoader(SpeechLoader):

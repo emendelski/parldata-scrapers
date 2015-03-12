@@ -18,6 +18,7 @@ from visegrad.loaders import MojePanstwoPersonLoader, OrganizationLoader, \
     MojePanstwoSessionLoader, MojePanstwoSittingLoader
 from visegrad.items import Person, Organization, Membership, VoteEvent, Vote, \
     Motion, Count, Speech, Event
+from visegrad.loaders import pl_make_session_id, pl_make_sitting_id
 from visegrad.api.parliaments import SejmPlApiExport
 
 
@@ -312,7 +313,7 @@ class MojepanstwoPlSpider(VisegradSpider):
             item = l.load_item()
             yield item
             yield scrapy.Request(
-                self.get_api_url('/dane/sejm_posiedzenia/%(parent_id)s' % item),
+                self.get_api_url('/dane/%(parent_id)s' % item),
                 callback=self.parse_session
             )
 
@@ -368,7 +369,17 @@ class MojepanstwoPlSpider(VisegradSpider):
             l.add_value('creator_id', speech['ludzie.posel_id'])
         l.add_value('text', data['object']['layers']['html'])
         l.add_value('date', speech['sejm_wystapienia.data'])
-        l.add_value('event_id', speech['sejm_wystapienia.punkt_id'])
+        if speech['sejm_wystapienia.punkt_id'] == '0':
+            event_id = pl_make_session_id(
+                speech['sejm_wystapienia.posiedzenie_id'])
+            yield scrapy.Request(
+                self.get_api_url('/dane/%s' % event_id),
+                callback=self.parse_session
+            )
+        else:
+            event_id = pl_make_sitting_id(speech['sejm_wystapienia.punkt_id'])
+        l.add_value('event_id', event_id)
+
         video = speech['sejm_wystapienia.yt_id']
         if video and video != "0":
             video = "https://www.youtube.com/watch?v=%s" % video
