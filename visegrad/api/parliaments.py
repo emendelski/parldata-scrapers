@@ -36,7 +36,8 @@ class SkustinaMeApiExport(VisegradApiExport):
             r'([dD]r )|(mr )|(doc\. )|(Prof\. )|(Prim\.)')
         spaces_regex = re.compile(r'\s{2,}')
         prefix_regex = re.compile(
-            r'(pred\u015bedavaju\u0107i )|(pred\u015bednik )')
+            ur'(pred\u015bedavaju\u0107i )|(pred\u015bednik )|\
+(generalni sekretar )', re.U)
 
         for p in vpapi.getall('people'):
             name = titles_regex.sub('', p['name'])
