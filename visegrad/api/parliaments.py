@@ -1,5 +1,5 @@
 # -*- coding: utf8 -*-
-from scrapy.log import DEBUG
+from scrapy.log import DEBUG, WARNING
 
 import tempfile
 
@@ -32,17 +32,12 @@ class SkustinaMeApiExport(VisegradApiExport):
     def export_speeches(self):
         speeches = self.load_json('speeches')
         people = {}
-        titles_regex = re.compile(
-            r'([dD]r )|(mr )|(doc\. )|(Prof\. )|(Prim\.)')
-        spaces_regex = re.compile(r'\s{2,}')
         prefix_regex = re.compile(
             ur'(pred\u015bedavaju\u0107i )|(pred\u015bednik )|\
 (generalni sekretar )', re.U)
 
         for p in vpapi.getall('people'):
-            name = titles_regex.sub('', p['name'])
-            name = name.replace('-', ' ')
-            name = spaces_regex.sub(' ', name).lower()
+            name = self.normalize_name(p['name'])
             people[name] = p['id']
 
         for speech in speeches:
@@ -57,12 +52,40 @@ class SkustinaMeApiExport(VisegradApiExport):
                     text_speech['position'] = n + 1
                     text_speech['type'] = 'speech'
 
-                    creator = s['creator'].lower()
+                    creator = self.normalize_name(s['creator'])
                     creator = prefix_regex.sub('', creator)
-                    creator = creator.replace('-', ' ')
-                    creator = spaces_regex.sub(' ', creator)
+
                     if creator in people:
                         text_speech['creator_id'] = people[creator]
+                    else:
+                        creator_id = None
+
+                        for name in people:
+                            if name in creator:
+                                creator_id = people[name]
+                                break
+
+                        if creator_id is None:
+                            resp = vpapi.getfirst(
+                                'people', where={
+                                    'name': {
+                                        '$regex': s['creator'],
+                                        'options': 'i'
+                                    }
+                                }
+                            )
+                            if resp is None:
+                                self.log('Person "%(creator)s" not found. \
+Creating one' % s, WARNING)
+                                item = {
+                                    'name': s['creator'],
+                                    'sources': text_speech['sources']
+                                }
+                                resp = vpapi.post('people', item)
+                            creator_id = resp['id']
+
+                        people[creator] = creator_id
+                        text_speech['creator_id'] = creator_id
 
                     self.get_or_create(
                         'speeches',
@@ -71,6 +94,15 @@ class SkustinaMeApiExport(VisegradApiExport):
                     )
             else:
                 self.get_or_create('speeches', speech)
+
+    def normalize_name(self, value):
+        titles_regex = re.compile(
+            r'([dD]r )|(mr )|(doc\. )|(Prof\. )|(Prim\.)')
+        spaces_regex = re.compile(r'\s{2,}')
+
+        value = titles_regex.sub('', value)
+        value = value.replace('-', ' ')
+        return spaces_regex.sub(' ', value).lower()
 
     def download_pdf(self, url):
         pdf_file = tempfile.NamedTemporaryFile()
