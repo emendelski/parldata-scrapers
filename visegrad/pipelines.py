@@ -67,7 +67,10 @@ class ExportPipeline(object):
 
         status = 'finished' if reason == 'finished' else 'failed'
 
-        if spider.crawler.stats.get_value('log_count/ERROR'):
+        max_errors = settings.get('CLOSESPIDER_ERRORCOUNT')
+        errors_count = spider.crawler.stats.get_value('log_count/ERROR')
+
+        if max_errors and errors_count >= max_errors:
             status = 'failed'
 
         if status == 'finished' and spider.exporter_class:
