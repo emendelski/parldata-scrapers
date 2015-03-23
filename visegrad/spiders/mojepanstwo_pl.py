@@ -369,6 +369,9 @@ class MojepanstwoPlSpider(VisegradSpider):
             l.add_value('creator_id', speech['ludzie.posel_id'])
         l.add_value('text', data['object']['layers']['html'])
         l.add_value('date', speech['sejm_wystapienia.data'])
+        l.add_value('position', speech.get('sejm_wystapienia._ord'))
+        l.add_value('attribution_text', speech.get('stanowiska.nazwa'))
+
         if speech['sejm_wystapienia.punkt_id'] == '0':
             event_id = pl_make_session_id(
                 speech['sejm_wystapienia.posiedzenie_id'])
